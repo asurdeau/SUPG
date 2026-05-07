@@ -18,6 +18,10 @@ class gridOperator:
 
         self.steps = (xR - xL) / (1. * Nx), (yR - yL) / (1. * Ny)
 
+        self.xCoord = np.linspace(xL, xR, Nx+1)
+        self.yCoord = np.linspace(yL, yR, Ny+1)
+        self.xGrid, self.yGrid = np.meshgrid(self.xCoord, self.yCoord)
+
 
     def periodize(self, q) :
         iMin, iMax, jMin, jMax = self.valid_grid

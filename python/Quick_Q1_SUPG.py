@@ -37,8 +37,9 @@ if __name__ == "__main__":
 
   ### plot parameters
   plot_params = params["plot_parameters"]
-  nPlots = params["plot_parameters"].values()
-
+  nPlots = params["plot_parameters"]["nb_plots"]
+  do_pdf_plot = params["plot_parameters"]["do_pdf_plot"]
+  do_gif_plot = params["plot_parameters"]["do_gif_plot"]
 
 
   # grid creation 
@@ -56,43 +57,48 @@ if __name__ == "__main__":
 
   ### initialise time parameters
   i = 0
-  time = 0.0
+  currentTime = 0.0
   dt_apriori = min(dx, dy) * CFL
   historique_dt = []
 
   ### initial plot
   if (nPlots > 1) :
     gif_frames = defaultdict(list)
-    makePlots(q, time, params, gridOp, gif_frames) # plots : pdf et/ou gif
+    q_valid = q[iMin:iMax+2, jMin:jMax+2] # WE ONLY EXTRACT q OVER THE VALID MESH (+ WE ADD THE BORDERS)
+    makePlots(q_valid, currentTime, params, gridOp, gif_frames) # plots : pdf et/ou gif
+  else :
+     do_gif_plot = False
 
   timeBetweenPlots = Tf / (1. * (nPlots - 1))
   nPlotsDone= 1.
-  willPlot = False
+  doPlot = False
 
   #############################################################################################################
 
 
 
   # TIME LOOP
-  while (abs(time - Tf) > 1.e-10) :
+  while (abs(currentTime - Tf) > 1.e-10) :
     i += 1
 
-    # time += dt     # : accumule les erreurs d'arrondis !!!!
-    # time = i * dt  # : le meilleur choix quand le pas est constant 
+    # currentTime += dt     # : accumule les erreurs d'arrondis !!!!
+    # currentTime = i * dt  # : le meilleur choix quand le pas est constant 
     # historique_dt.append(dt)
-    # time = math.fsum(historique_dt) # recalcule la somme à chaque fois mais plus précis
+    # currentTime = math.fsum(historique_dt) # recalcule la somme à chaque fois mais plus précis
     
     dt = dt_apriori
-    if (time + dt_apriori > Tf) :
+    if (currentTime + dt_apriori > Tf) :
 
-        dt = time - Tf
-        time = Tf
-        doPlot = False
-    elif (time + dt_apriori > nPlotsDone * timeBetweenPlots) :
-       dt = nPlotsDone * timeBetweenPlots - time
-       time = nPlotsDone * timeBetweenPlots
+        dt = currentTime - Tf
+        currentTime = Tf
+        doPlot = False # The last plot is kept outside of the loop, switch to true if past inside
+    elif (currentTime + dt_apriori > nPlotsDone * timeBetweenPlots) :
+       dt = nPlotsDone * timeBetweenPlots - currentTime
+       currentTime = nPlotsDone * timeBetweenPlots
 
        doPlot = True
+    else :
+       currentTime += dt_apriori
 
 
     # Div . Fluxes computations
@@ -108,8 +114,9 @@ if __name__ == "__main__":
 
 
     # Plots éventuels
-    if (doPlot) :
-       makePlots(q, time, params, gridOp, gif_frames) # plots : pdf et/ou gif
+    if (doPlot and (do_pdf_plot or do_gif_plot)) :
+       q_valid = q[iMin:iMax+2, jMin:jMax+2] # WE ONLY EXTRACT q OVER THE VALID MESH (+ WE ADD THE BORDERS)
+       makePlots(q_valid, currentTime, params, gridOp, gif_frames) # plots : pdf et/ou gif
        nPlotsDone += 1
        doPlot = False
 
@@ -120,8 +127,10 @@ if __name__ == "__main__":
 
 
   # FINAL TIME REACHED
-  makePlots(q, time, params, gridOp, gif_frames) # plots : pdf et/ou gif
-  if (nPlots > 1) :
+  if (nPlots >= 1 and (do_pdf_plot or do_gif_plot)) :
+    q_valid = q[iMin:iMax+2, jMin:jMax+2] # WE ONLY EXTRACT q OVER THE VALID MESH (+ WE ADD THE BORDERS)
+    makePlots(q_valid, currentTime, params, gridOp, gif_frames) # plots : pdf et/ou gif
+  if (do_gif_plot) :
     saveGifs(gif_frames, plot_params)  # duration = secondes par frame
 
 

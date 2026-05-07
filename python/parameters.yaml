@@ -15,9 +15,9 @@ time_parameters :
   CFL_number : 0.3
 
 plot_parameters :
-  nb_plots : 2   # Counting the initial one !
-  pdf_plot : False
-  gif_plot : True
+  nb_plots : 11   # Counting the initial one ! If < 1 no gif !
+  do_pdf_plot : False
+  do_gif_plot : True
   plot_loc : "Plots/Tests/"
-  gif_time : 1.
+  gif_time : 1.   # en s
 
