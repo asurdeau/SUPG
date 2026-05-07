@@ -1,4 +1,9 @@
+# Modules généraux
 import numpy as np
+
+# Modules perso
+import config
+from config import XVEL, YVEL, PRES 
 
 class gridOperator:
 

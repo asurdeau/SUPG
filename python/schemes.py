@@ -1,6 +1,8 @@
+# Modules généraux
 import numpy as np
 
-# modules perso
+# Modules perso
+import config
 from config import XVEL, YVEL, PRES
 import grid_mod
 

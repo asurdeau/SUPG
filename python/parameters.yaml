@@ -14,3 +14,10 @@ time_parameters :
   end_time : 1.
   CFL_number : 0.3
 
+plot_parameters :
+  nb_plots : 2   # Counting the initial one !
+  pdf_plot : False
+  gif_plot : True
+  plot_loc : "Plots/Tests/"
+  gif_time : 1.
+

@@ -1,13 +1,16 @@
+# Modules généraux
 import numpy as np
 import matplotlib.pyplot as plt
-import sys
 import yaml
 import math
+from collections import defaultdict
 
 # Modules perso
+import config
+from config import XVEL, YVEL, PRES
 import grid_mod
 import schemes
-from config import XVEL, YVEL, PRES
+from plots import makePlots, saveGifs
 
 
 ####################################################################################################################
@@ -19,68 +22,107 @@ from config import XVEL, YVEL, PRES
 # Code executé quand le fichier est executé comme script et pas quand il est importé comme module
 
 
-X = np.linspace(0, 1, 100+1, endpoint=True)
-Y = X**2
-
-plt.figure()
-plt.plot(X, Y)
-plt.show()
-
-
 if __name__ == "__main__":
+  
+  # DATA extraction from yaml file
   params = yaml.load(open("parameters.yaml"),Loader=yaml.SafeLoader)
+
+  ### grid parameters
   grid_params = params["grid_parameters"]
-
-
   Nx, Ny, nGhost = grid_params["mesh_parameters"].values()
   xL, xR, yL, yR = grid_params["domain_parameters"].values()
+
+  ### time parameters
   Tf, CFL = params["time_parameters"].values()
+
+  ### plot parameters
+  plot_params = params["plot_parameters"]
+  nPlots = params["plot_parameters"].values()
+
+
 
   # grid creation 
   gridOp = grid_mod.gridOperator(grid_params)
   iMin, iMax, jMin, jMax = gridOp.valid_grid
   dx, dy = gridOp.steps
 
-  # Initial data
-  a = 2.
-  q = a * np.ones((Nx + 2*nGhost, Ny+2*nGhost, 3))
-  X = np.linspace(xL, xR, Nx+1, endpoint=True)
-  Y = X**2
 
-  plt.figure()
-  plt.plot(X, Y)
-#   plt.imshow(q[iMin:iMax+2, jMin:jMax+2, XVEL])
-  plt.show()
 
-  dt = min(dx, dy) * CFL
-  print(dt)
-  time = 0.0
+  # Initialise data
+  u0, v0, p0 = 1., 2., 3.
+  q = u0 * np.ones((Nx + 2*nGhost, Ny+2*nGhost, 3))
+  q[:, :, YVEL] = v0 * np.ones((Nx + 2*nGhost, Ny+2*nGhost))
+  q[:, :, PRES] = p0 * np.ones((Nx + 2*nGhost, Ny+2*nGhost))
+
+  ### initialise time parameters
   i = 0
+  time = 0.0
+  dt_apriori = min(dx, dy) * CFL
   historique_dt = []
+
+  ### initial plot
+  if (nPlots > 1) :
+    gif_frames = defaultdict(list)
+    makePlots(q, time, params, gridOp, gif_frames) # plots : pdf et/ou gif
+
+  timeBetweenPlots = Tf / (1. * (nPlots - 1))
+  nPlotsDone= 1.
+  willPlot = False
+
+  #############################################################################################################
+
+
+
+  # TIME LOOP
   while (abs(time - Tf) > 1.e-10) :
     i += 1
-    time = i * dt  # : accumule les erreurs d'arrondis !!!!
-    # historique_dt.append(dt)
-    # time = math.fsum(historique_dt) # recalcule la somme à chaque fois
 
-    if(time > Tf) :
+    # time += dt     # : accumule les erreurs d'arrondis !!!!
+    # time = i * dt  # : le meilleur choix quand le pas est constant 
+    # historique_dt.append(dt)
+    # time = math.fsum(historique_dt) # recalcule la somme à chaque fois mais plus précis
+    
+    dt = dt_apriori
+    if (time + dt_apriori > Tf) :
+
         dt = time - Tf
-        t = Tf
-        
-    print(time)
+        time = Tf
+        doPlot = False
+    elif (time + dt_apriori > nPlotsDone * timeBetweenPlots) :
+       dt = nPlotsDone * timeBetweenPlots - time
+       time = nPlotsDone * timeBetweenPlots
+
+       doPlot = True
+
 
     # Div . Fluxes computations
-
     divF = schemes.SUPG_developped_divFlux(q, gridOp)
+
 
     # Update
     q[iMin:iMax, jMin:jMax] += - dt * divF[iMin:iMax, jMin:jMax]
+
 
     # Conditions périodiques :
     gridOp.periodize(q)
 
 
+    # Plots éventuels
+    if (doPlot) :
+       makePlots(q, time, params, gridOp, gif_frames) # plots : pdf et/ou gif
+       nPlotsDone += 1
+       doPlot = False
 
+
+
+  #############################################################################################################
+
+
+
+  # FINAL TIME REACHED
+  makePlots(q, time, params, gridOp, gif_frames) # plots : pdf et/ou gif
+  if (nPlots > 1) :
+    saveGifs(gif_frames, plot_params)  # duration = secondes par frame
 
 
 
@@ -89,22 +131,6 @@ if __name__ == "__main__":
 #                                                 AUTRES ROUTINES                                                  #
 
 ####################################################################################################################
-
-
-def makePlots(q, time, params, grid):    
-    Nx, Ny, nGhost = params["mesh_parameters"].values()
-    xL, xR, yL, yR = params["domain_parameters"].values()
-
-    iMin, iMax, jMin, jMax = grid.valid_grid
-
-
-    imXVEL = imshow(q[iMin:iMax+2, jMin:jMax+2, XVEL],cmap=cm.RdBu) # drawing the function
-    cset = contour(Z,arange(-1,1.5,0.2),linewidths=2,cmap=cm.Set2)
-    clabel(cset,inline=True,fmt='%1.1f',fontsize=10)
-    colorbar(imXVEL) # adding the colobar on the right
-    # latex fashion title
-    title('time : '+str(time))
-    show()
 
 
 # Spatial operators :
