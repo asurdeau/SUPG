@@ -6,8 +6,8 @@ grid_parameters :
     yR : 1.
 
   mesh_parameters :
-    Nx : 20
-    Ny : 20
+    Nx : 100
+    Ny : 100
     nGhost : 1
 
 time_parameters : 

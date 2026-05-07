@@ -7,7 +7,7 @@ import os
 # Modules perso
 from config import XVEL, YVEL, PRES 
 
-def makePlots(q, time, params, grid, gif_frames):
+def makePlots(q, time, params, grid, gif_writers):
     plot_loc = params["plot_parameters"]["plot_loc"]
     do_pdf_plot = params["plot_parameters"]["do_pdf_plot"]
     do_gif_plot = params["plot_parameters"]["do_gif_plot"]
@@ -32,26 +32,33 @@ def makePlots(q, time, params, grid, gif_frames):
         plt.tight_layout()
         
         if (do_gif_plot) :
-            png_path = f"{plot_loc}{filename}{time}.png"
-            plt.savefig(png_path)
-            gif_frames[filename].append(png_path)
+            # On écrit directement dans le gif
+            fig.canvas.draw()
+            frame = np.array(fig.canvas.renderer.buffer_rgba())
+            gif_writers[filename].append_data(frame)
 
         if (do_pdf_plot) :
             plt.savefig(f"{plot_loc}{filename}{time}.pdf")
 
         plt.close()
 
-def saveGifs(gif_frames, params):
-    plot_loc = params["plot_loc"]
-    gif_time = 1000 * params["gif_time"] # Conversions en ms !
-    for filename, frames in gif_frames.items():
-        images = [imageio.imread(frame) for frame in frames]
-        imageio.mimwrite(
+
+def openGifWriters(params):
+    plot_loc = params["plot_parameters"]["plot_loc"]
+    gif_time = 1000. * params["plot_parameters"]["gif_time"] # Conversion s to ms !!
+    plots = [("U", ), ("V", ), ("P", )]
+    return {
+        filename: imageio.get_writer(
             f"{plot_loc}{filename}.gif",
-            images,
+            mode="I",
             duration=gif_time,
             loop=0
         )
-        for frame in frames:
-            os.remove(frame)
+        for filename, *_ in plots
+    }
+
+
+def closeGifWriters(gif_writers):
+    for writer in gif_writers.values():
+        writer.close()
     print("GIFs sauvegardés !")

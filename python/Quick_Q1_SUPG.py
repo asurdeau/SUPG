@@ -4,13 +4,14 @@ import matplotlib.pyplot as plt
 import yaml
 import math
 from collections import defaultdict
+import time
 
 # Modules perso
 import config
 from config import XVEL, YVEL, PRES
 import grid_mod
 import schemes
-from plots import makePlots, saveGifs
+from plots import makePlots, openGifWriters, closeGifWriters
 
 
 ####################################################################################################################
@@ -23,7 +24,9 @@ from plots import makePlots, saveGifs
 
 
 if __name__ == "__main__":
-  
+  # Starting time of computations
+  startTimeWhole = time.time()
+
   # DATA extraction from yaml file
   params = yaml.load(open("parameters.yaml"),Loader=yaml.SafeLoader)
 
@@ -60,12 +63,12 @@ if __name__ == "__main__":
   currentTime = 0.0
   dt_apriori = min(dx, dy) * CFL
   historique_dt = []
-
+  
   ### initial plot
   if (nPlots > 1) :
-    gif_frames = defaultdict(list)
+    gif_writers = openGifWriters(params)
     q_valid = q[iMin:iMax+2, jMin:jMax+2] # WE ONLY EXTRACT q OVER THE VALID MESH (+ WE ADD THE BORDERS)
-    makePlots(q_valid, currentTime, params, gridOp, gif_frames) # plots : pdf et/ou gif
+    makePlots(q_valid, currentTime, params, gridOp, gif_writers) # plots : pdf et/ou gif
   else :
      do_gif_plot = False
 
@@ -78,6 +81,8 @@ if __name__ == "__main__":
 
 
   # TIME LOOP
+  # starting time of the loop
+  startTimeLoop = time.time()
   while (abs(currentTime - Tf) > 1.e-10) :
     i += 1
 
@@ -85,7 +90,6 @@ if __name__ == "__main__":
     # currentTime = i * dt  # : le meilleur choix quand le pas est constant 
     # historique_dt.append(dt)
     # currentTime = math.fsum(historique_dt) # recalcule la somme à chaque fois mais plus précis
-    
     dt = dt_apriori
     if (currentTime + dt_apriori > Tf) :
 
@@ -116,22 +120,31 @@ if __name__ == "__main__":
     # Plots éventuels
     if (doPlot and (do_pdf_plot or do_gif_plot)) :
        q_valid = q[iMin:iMax+2, jMin:jMax+2] # WE ONLY EXTRACT q OVER THE VALID MESH (+ WE ADD THE BORDERS)
-       makePlots(q_valid, currentTime, params, gridOp, gif_frames) # plots : pdf et/ou gif
+       makePlots(q_valid, currentTime, params, gridOp, gif_writers) # plots : pdf et/ou gif
        nPlotsDone += 1
        doPlot = False
-
+       print("Plot ! temps de simulation :"+str(currentTime))
+  
+  
+  # end time of loop
+  endTimeLoop = time.time()
 
 
   #############################################################################################################
 
 
-
   # FINAL TIME REACHED
   if (nPlots >= 1 and (do_pdf_plot or do_gif_plot)) :
     q_valid = q[iMin:iMax+2, jMin:jMax+2] # WE ONLY EXTRACT q OVER THE VALID MESH (+ WE ADD THE BORDERS)
-    makePlots(q_valid, currentTime, params, gridOp, gif_frames) # plots : pdf et/ou gif
-  if (do_gif_plot) :
-    saveGifs(gif_frames, plot_params)  # duration = secondes par frame
+    makePlots(q_valid, currentTime, params, gridOp, gif_writers) # plots : pdf et/ou gif
+    closeGifWriters(gif_writers)
+
+  endTimeWhole = time.time()
+
+  print("Temps de calcul boucle : ", endTimeLoop - startTimeLoop)
+  print("Temps de calcul total : ", endTimeWhole - startTimeWhole)
+
+
 
 
 
