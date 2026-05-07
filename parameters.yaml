@@ -1,0 +1,16 @@
+grid_parameters :
+  domain_parameters :
+    xL : 0.
+    xR : 1.
+    yL : 0.
+    yR : 1.
+
+  mesh_parameters :
+    Nx : 20
+    Ny : 20
+    nGhost : 1
+
+time_parameters : 
+  end_time : 1.
+  CFL_number : 0.3
+
