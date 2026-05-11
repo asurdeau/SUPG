@@ -12,6 +12,7 @@ from config import XVEL, YVEL, PRES
 import grid_mod
 import schemes
 from plots import makePlots, openGifWriters, closeGifWriters
+import solutions
 
 
 ####################################################################################################################
@@ -52,17 +53,20 @@ if __name__ == "__main__":
 
 
 
-  # Initialise data
-  u0, v0, p0 = 1., 2., 3.
-  q = u0 * np.ones((Nx + 2*nGhost, Ny+2*nGhost, 3))
-  q[:, :, YVEL] = v0 * np.ones((Nx + 2*nGhost, Ny+2*nGhost))
-  q[:, :, PRES] = p0 * np.ones((Nx + 2*nGhost, Ny+2*nGhost))
-
+  # INITIALISATION
   ### initialise time parameters
   i = 0
   currentTime = 0.0
   dt_apriori = min(dx, dy) * CFL
   historique_dt = []
+
+  ### Initialise data
+  q = np.zeros((Nx + 2*nGhost, Ny * 2*nGhost, 3))
+  q[iMin:iMax+2, jMin:jMax+2] = solutions.getSolution(currentTime, gridOp.xGrid, gridOp.yGrid, params["solution_parameters"])
+  gridOp.periodize(q)
+
+#   # Periodicity check :
+#   print("Periodicity test : ", gridOp.isPeriodic(q))
   
   ### initial plot
   if (nPlots > 1) :
@@ -106,11 +110,11 @@ if __name__ == "__main__":
 
 
     # Div . Fluxes computations
-    divF = schemes.SUPG_developped_divFlux(q, gridOp)
+    divF = schemes.getApproxDivFlux(q, gridOp, params["scheme_choice"])
 
 
     # Update
-    q[iMin:iMax, jMin:jMax] += - dt * divF[iMin:iMax, jMin:jMax]
+    q[iMin:iMax+1, jMin:jMax+1] += - dt * divF[iMin:iMax+1, jMin:jMax+1]
 
 
     # Conditions périodiques :
@@ -124,6 +128,9 @@ if __name__ == "__main__":
        nPlotsDone += 1
        doPlot = False
        print("Plot ! temps de simulation :"+str(currentTime))
+
+    #    # Periodicity check :
+    #    print("Periodicity test : ", gridOp.isPeriodic(q))
   
   
   # end time of loop

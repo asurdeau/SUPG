@@ -18,6 +18,16 @@ plot_parameters :
   nb_plots : 11   # Counting the initial one ! If < 1 no gif !
   do_pdf_plot : False
   do_gif_plot : True
+  do_exact_plot : True
   plot_loc : "Plots/Tests/"
   gif_time : 1.   # en s
+  
+scheme_choice : 2 # 1 : CLASSICAL FV UPWIND, 2 : LUMPED SUPG 
 
+solution_parameters :
+  simulation_choice : 2           # 1 : constant, 2 : analytical periodic
+  constant : [1., 2., 3.]
+  analytical_periodic :
+    theta : 0.25     # expression written as "a * pi"
+    lambda : 0.25
+    speed : 2.

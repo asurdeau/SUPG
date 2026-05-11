@@ -6,11 +6,13 @@ import os
 
 # Modules perso
 from config import XVEL, YVEL, PRES 
+import solutions
 
 def makePlots(q, time, params, grid, gif_writers):
     plot_loc = params["plot_parameters"]["plot_loc"]
     do_pdf_plot = params["plot_parameters"]["do_pdf_plot"]
     do_gif_plot = params["plot_parameters"]["do_gif_plot"]
+    do_exact_plot = params["plot_parameters"]["do_exact_plot"]
     X = grid.xGrid
     Y = grid.yGrid
 
@@ -39,14 +41,46 @@ def makePlots(q, time, params, grid, gif_writers):
 
         if (do_pdf_plot) :
             plt.savefig(f"{plot_loc}{filename}{time}.pdf")
-
+        
         plt.close()
+    
+    
+    if (do_exact_plot) :
+        exact_plots = [
+            (XVEL, "U_exact", "Vitesse U exacte", "RdBu_r"),
+            (YVEL, "V_exact", "Vitesse V exacte", "RdBu_r"),
+            (PRES, "P_exact", "Pression exacte",  "viridis"),
+        ]
+
+        q_exact = solutions.getSolution(time, X, Y, params["solution_parameters"])
+
+        for var, filename_exact, title, cmap in exact_plots:
+            fig, ax = plt.subplots()
+            cf = ax.contourf(X, Y, q_exact[:, :, var], levels=50, cmap=cmap)
+            ax.contour(X, Y, q_exact[:, :, var], levels=50, colors="k", linewidths=0.3)
+            plt.colorbar(cf, ax=ax, label=title, format="%.2f")
+            ax.set_title(f"{title} à t={time}")
+            ax.set_xlabel("x")
+            ax.set_ylabel("y")
+            ax.set_aspect("equal")
+            plt.tight_layout()
+            
+            if (do_gif_plot) :
+                # On écrit directement dans le gif
+                fig.canvas.draw()
+                frame = np.array(fig.canvas.renderer.buffer_rgba())
+                gif_writers[filename_exact].append_data(frame)
+
+            if (do_pdf_plot) :
+                plt.savefig(f"{plot_loc}{filename_exact}{time}.pdf")
+
+            plt.close()
 
 
 def openGifWriters(params):
     plot_loc = params["plot_parameters"]["plot_loc"]
     gif_time = 1000. * params["plot_parameters"]["gif_time"] # Conversion s to ms !!
-    plots = [("U", ), ("V", ), ("P", )]
+    plots = [("U", ), ("V", ), ("P", ), ("U_exact", ), ("V_exact", ), ("P_exact", )]
     return {
         filename: imageio.get_writer(
             f"{plot_loc}{filename}.gif",

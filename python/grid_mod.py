@@ -54,3 +54,24 @@ class gridOperator:
         q[iMax+1:, jMax+1:] = q[iMin:iMin+nGhost, jMin:jMin+nGhost]
 
         return q
+    
+
+
+    def isPeriodic(self, q) :
+        iMin, iMax, jMin, jMax = self.valid_grid
+        nGhost = iMin
+        
+        # BANDES
+        # bande verticale à gauche 
+        test = (abs(q[:iMin] - q[iMax-nGhost+1:iMax+1]) < 1.e-16).all()
+
+        # bande verticale à droite
+        test = test and (abs(q[iMax+1:] - q[iMin:iMin+nGhost]) < 1.e-16).all()
+
+        # bande horizontale en bas
+        test = test and (abs(q[: jMin] - q[:jMax-nGhost+1:jMax+1]) < 1.e-16).all()
+
+        # bande horizontale en haut
+        test = test and (abs(q[jMax+1:] - q[jMin:jMin+nGhost]) < 1.e-16).all()
+
+        return test
