@@ -8,13 +8,31 @@ import os
 from config import XVEL, YVEL, PRES 
 import solutions
 
+def getSchemeTitles(params):
+    schemeChoice = params["scheme_choice"]
+
+    if (schemeChoice == 1):
+        schemeShort = "UPW"
+        schemeName = "Upwind"
+    elif (schemeChoice == 2):
+        schemeShort = "SUPG"
+        schemeName = "SUPG"
+    elif (schemeChoice == 3):
+        schemeShort = "modSUPG"
+        schemeName = "SUPG modifié"
+    
+    return schemeShort, schemeName
+
+
+
 def makePlots(q, time, params, grid, gif_writers):
     plot_loc = params["plot_parameters"]["plot_loc"]
     do_pdf_plot = params["plot_parameters"]["do_pdf_plot"]
     do_gif_plot = params["plot_parameters"]["do_gif_plot"]
     do_exact_plot = params["plot_parameters"]["do_exact_plot"]
-    X = grid.xGrid
-    Y = grid.yGrid
+    iMin, iMax, jMin, jMax = grid.valid_grid
+    X = grid.xGrid[iMin:iMax+1, jMin:jMax+1]
+    Y = grid.yGrid[iMin:iMax+1, jMin:jMax+1]
 
     plots = [
         (XVEL, "U", "Vitesse U", "RdBu_r"),
@@ -22,12 +40,15 @@ def makePlots(q, time, params, grid, gif_writers):
         (PRES, "P", "Pression",  "viridis"),
     ]
 
+    schemeShort, schemeName = getSchemeTitles(params)
+
     for var, filename, title, cmap in plots:
         fig, ax = plt.subplots()
         cf = ax.contourf(X, Y, q[:, :, var], levels=50, cmap=cmap)
         ax.contour(X, Y, q[:, :, var], levels=50, colors="k", linewidths=0.3)
-        plt.colorbar(cf, ax=ax, label=title, format="%.2f")
-        ax.set_title(f"{title} à t={time}")
+        # plt.colorbar(cf, ax=ax, label=title, format="%.2f")
+        plt.colorbar(cf, ax=ax, label=title)
+        ax.set_title(f"{title} avec le schéma "+schemeName+f" à t={round(time, 1)}")
         ax.set_xlabel("x")
         ax.set_ylabel("y")
         ax.set_aspect("equal")
@@ -37,7 +58,7 @@ def makePlots(q, time, params, grid, gif_writers):
             # On écrit directement dans le gif
             fig.canvas.draw()
             frame = np.array(fig.canvas.renderer.buffer_rgba())
-            gif_writers[filename].append_data(frame)
+            gif_writers[filename+"_"+schemeShort].append_data(frame)
 
         if (do_pdf_plot) :
             plt.savefig(f"{plot_loc}{filename}{time}.pdf")
@@ -80,7 +101,8 @@ def makePlots(q, time, params, grid, gif_writers):
 def openGifWriters(params):
     plot_loc = params["plot_parameters"]["plot_loc"]
     gif_time = 1000. * params["plot_parameters"]["gif_time"] # Conversion s to ms !!
-    plots = [("U", ), ("V", ), ("P", ), ("U_exact", ), ("V_exact", ), ("P_exact", )]
+    schemeShort = getSchemeTitles(params)[0]
+    plots = [("U_"+schemeShort, ), ("V_"+schemeShort, ), ("P_"+schemeShort, ), ("U_exact", ), ("V_exact", ), ("P_exact", )]
     return {
         filename: imageio.get_writer(
             f"{plot_loc}{filename}.gif",

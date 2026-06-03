@@ -5,9 +5,9 @@ grid_parameters :
     yL : 0.
     yR : 1.
 
-  mesh_parameters :
-    Nx : 100
-    Ny : 100
+  mesh_parameters : # Nx and Ny are the NUMBER OF POINTS, NOT CELLS
+    Nx : 101 
+    Ny : 101
     nGhost : 1
 
 time_parameters : 
@@ -18,16 +18,19 @@ plot_parameters :
   nb_plots : 11   # Counting the initial one ! If < 1 no gif !
   do_pdf_plot : False
   do_gif_plot : True
-  do_exact_plot : True
-  plot_loc : "Plots/Tests/"
+  do_exact_plot : False
+  plot_loc : "Plots/Tests/smooth_oblique_flow/0_deg/"
   gif_time : 1.   # en s
   
-scheme_choice : 2 # 1 : CLASSICAL FV UPWIND, 2 : LUMPED SUPG 
+scheme_choice : 1 # 1 : CLASSICAL FV UPWIND, 2 : LUMPED SUPG, 3 : "À la carte" lumped SUPG 
 
 solution_parameters :
-  simulation_choice : 2           # 1 : constant, 2 : analytical periodic
+  simulation_choice : 4                                 # 1 : constant, 2 : constant + random noise, 3 : constant + small gaussian, 4 : checkerboard, 5 : analytical periodic
   constant : [1., 2., 3.]
+  noise_range : [12, 14]                                # n1, n2 for the range written as  [-10^(-n1), -10^(-n2)] u [10^(-n2), 10^(-n1)]
+  gaussian_noise : [3, 0.4, 0.43, 0.1]                  # perturbation for the pressure : parameters are epsilon the exponent of factor 0.1 for the height, the center and the radius
+  checkerboard : [[1., -1.], [1., -1.], [1., -1.]]      # values for u, v and p (first is the one at (0, 0) and other of the same checkerboard)
   analytical_periodic :
-    theta : 0.25     # expression written as "a * pi"
+    theta : 0.     # expression written as "a * pi"
     lambda : 0.25
-    speed : 2.
+    speed : 1.
