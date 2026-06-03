@@ -63,7 +63,7 @@ def makeSolutions1DPlots(q, time, params, grid, pdf_writers, gif_writers):
         q_slice = q[:, jMid]
 
         if (do_exact_pdf_plot or do_exact_gif_plot):
-            q_exact = solutions.getSolution(time, X, Y, params["solution_parameters"])
+            q_exact = solutions.getSolution(time, grid, params["solution_parameters"])
             q_exact_slice = q_exact[:, jMid]
     
     elif (i_section == 2):
@@ -72,7 +72,7 @@ def makeSolutions1DPlots(q, time, params, grid, pdf_writers, gif_writers):
         q_slice = q[iMid]
 
         if (do_exact_pdf_plot or do_exact_gif_plot):
-            q_exact = solutions.getSolution(time, X, Y, params["solution_parameters"])
+            q_exact = solutions.getSolution(time, grid, params["solution_parameters"])
             q_exact_slice = q_exact[iMid]
 
     elif (i_section == 3):
@@ -86,7 +86,7 @@ def makeSolutions1DPlots(q, time, params, grid, pdf_writers, gif_writers):
             q_slice = np.diagonal(q, axis1=0, axis2=1).T
             
             if (do_exact_pdf_plot or do_exact_gif_plot):
-                q_exact = solutions.getSolution(time, X, Y, params["solution_parameters"])
+                q_exact = solutions.getSolution(time, grid, params["solution_parameters"])
                 q_exact_slice = np.diagonal(q_exact, axis1=0, axis2=1).T
                 
     plots = [
@@ -183,7 +183,7 @@ def makeSolutions2DPlots(q, time, params, grid, pdf_writers, gif_writers):
             (PRES, "P_exact", "Pression exacte",  "viridis"),
         ]
 
-        q_exact = solutions.getSolution(time, X, Y, params["solution_parameters"])
+        q_exact = solutions.getSolution(time, grid, params["solution_parameters"])
 
         for var, filename_exact, title, cmap in exact_plots:
             fig, ax = plt.subplots()

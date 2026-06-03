@@ -23,6 +23,11 @@ class gridOperator:
         self.xCoord = np.linspace(xL, xR, Nx)
         self.yCoord = np.linspace(yL, yR, Ny)
 
+        # Construction of the valid grid
+        xx_valid, yy_valid = np.meshgrid(self.xCoord, self.yCoord)
+        self.xValidGrid = np.transpose(xx_valid)
+        self.yValidGrid = np.transpose(yy_valid)
+
         # Ajout des mailles fantômes (maillage uniforme uniquement)
         ghost_x = np.arange(1, nGhost + 1)
         self.xCoord = np.concatenate([xL - ghost_x[::-1] * self.steps[0], self.xCoord, xR + ghost_x * self.steps[0]])

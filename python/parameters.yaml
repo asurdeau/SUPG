@@ -12,10 +12,10 @@ grid_parameters :
 
 time_parameters : 
   end_time : 1.
-  CFL_number : 0.3
+  CFL_number : 0.0001
 
 plot_parameters :
-  observables : 2 # 1 : 2d Plots of solutions || 2: 1d Plots of solutions || 3: norms of the approx sol || 4: Errors with exact 
+  observables : 3 # 1 : 2d Plots of solutions || 2: 1d Plots of solutions || 3: norms of the approx sol || 4: Errors with exact 
   sol_plots :
     nb_plots : 11   # Counting the initial one ! If < 1 no gif !
     levels : 10     # number of levels for contour 2d plots
@@ -26,12 +26,14 @@ plot_parameters :
     do_exact_gif_plot : 
     plot_loc : "Plots/Tests/smooth_oblique_flow/45_deg/"     # "Plots/Tests/smooth_oblique_flow/0_deg/"  "Plots/Tests/random_noise/"
     gif_time : 1.   # en s
+  sol_norms : 
+    plot_loc : "Plots/Tests/random_noise/"
   
   
 scheme_choice : 1 # 1 : CLASSICAL FV UPWIND || 2 : LUMPED SUPG || 3 : "À la carte" lumped SUPG 
 
 solution_parameters :
-  simulation_choice : 5                                 # 1 : constant || 2 : constant + random noise || 3 : constant + small gaussian || 4 : checkerboard || 5 : analytical periodic
+  simulation_choice : 2                                 # 1 : constant || 2 : constant + random noise || 3 : constant + small gaussian || 4 : checkerboard || 5 : analytical periodic
   constant : [1., 2., 3.]
   noise_range : [12, 14]                                # n1, n2 for the range written as  [-10^(-n1), -10^(-n2)] u [10^(-n2), 10^(-n1)]
   gaussian_noise : [3, 0.4, 0.43, 0.1]                  # perturbation for the pressure : parameters are epsilon the exponent of factor 0.1 for the height, the center and the radius

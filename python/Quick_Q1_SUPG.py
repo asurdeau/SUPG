@@ -1,6 +1,8 @@
 # Modules généraux
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.ticker as ticker
+from matplotlib.backends.backend_pdf import PdfPages
 import yaml
 import math
 from collections import defaultdict
@@ -11,6 +13,7 @@ import config
 from config import XVEL, YVEL, PRES
 import grid_mod
 import schemes
+import plots
 from plots import makeSolutionsPlots, openGifWriters, closeGifWriters, openPdfWriters, closePdfWriters
 import solutions
 
@@ -53,7 +56,8 @@ def getOneApproximateSolution(params):
 
     ### Initialise data
     q = np.zeros((Nx + 2*nGhost, Ny + 2*nGhost, 3))
-    q = solutions.getSolution(currentTime, gridOp.xGrid, gridOp.yGrid, params["solution_parameters"])        
+    q[iMin:iMax+1, jMin:jMax+1] = solutions.getSolution(currentTime, gridOp, params["solution_parameters"])
+    gridOp.periodize(q)      
     print("test periodicité donnée initiale : ", gridOp.isPeriodic(q))
     
     ### initial observables
@@ -66,9 +70,17 @@ def getOneApproximateSolution(params):
             makeSolutionsPlots(q_valid, currentTime, params, gridOp, pdf_writers, gif_writers) # plots : pdf et/ou gif
         else :
             do_gif_plot = False
-    elif (i_obs == 3):
+
+    elif (i_obs == 3): # Sup norm of the solution (stability purposes)
+        nb_iter = 2 * int(Tf / dt_apriori)    # taking a margin for the total number of iterations (just ignore -1 values)
+        print(nb_iter)
+        sup_norms = (-1.) * np.ones((nb_iter, 3))
+        sup_norms[0] = np.max(abs(q[iMin:iMax+1, jMin:jMax+1]), axis=(0, 1))
+    
+    elif (i_obs == 4): # Sup errors (consistency / convergence purposes) 
         nb_iter = 2 * int(Tf / dt_apriori)
-        norm_sup_q = (-1.) * np.ones((nb_iter, 3))
+        sup_errors = (-1.) * np.ones((nb_iter, 3))
+        sup_errors[0] = 0.
 
     timeBetweenPlots = Tf / (1. * (nPlots - 1))
     nPlotsDone= 1.
@@ -83,23 +95,30 @@ def getOneApproximateSolution(params):
     startTimeLoop = time.time()
     while (abs(currentTime - Tf) > 1.e-10) :
         i += 1
-
+        
         # currentTime += dt     # : accumule les erreurs d'arrondis !!!!
         # currentTime = i * dt  # : le meilleur choix quand le pas est constant 
         # historique_dt.append(dt)
         # currentTime = math.fsum(historique_dt) # recalcule la somme à chaque fois mais plus précis
         dt = dt_apriori
-        if (currentTime + dt_apriori > Tf) :
-            dt = currentTime - Tf
-            currentTime = Tf
-            doPlot = False # The last plot is kept outside of the loop, switch to true if past inside
-        elif (currentTime + dt_apriori > nPlotsDone * timeBetweenPlots) :
-            dt = nPlotsDone * timeBetweenPlots - currentTime
-            currentTime = nPlotsDone * timeBetweenPlots
+        if (i_obs == 1 or i_obs == 2):
+            if (currentTime + dt_apriori > Tf) :
+                dt = currentTime - Tf
+                currentTime = Tf
+                doPlot = False # The last plot is kept outside of the loop, switch to true if past inside
+            elif (currentTime + dt_apriori > nPlotsDone * timeBetweenPlots) :
+                dt = nPlotsDone * timeBetweenPlots - currentTime
+                currentTime = nPlotsDone * timeBetweenPlots
 
-            doPlot = True
+                doPlot = True
+            else :
+                currentTime += dt_apriori
         else :
-            currentTime += dt_apriori
+            if (currentTime + dt_apriori > Tf) :
+                dt = currentTime - Tf
+                currentTime = Tf
+            else :
+                currentTime += dt_apriori
 
 
         # Div . Fluxes computations
@@ -114,13 +133,22 @@ def getOneApproximateSolution(params):
         gridOp.periodize(q)
 
 
-        # Plots éventuels
-        if (doPlot and (do_pdf_plot or do_gif_plot)) :
-            q_valid = q[iMin:iMax+1, jMin:jMax+1] # WE ONLY EXTRACT q OVER THE VALID MESH (+ WE ADD THE BORDERS)
-            makeSolutionsPlots(q_valid, currentTime, params, gridOp, pdf_writers, gif_writers) # plots : pdf et/ou gif
-            nPlotsDone += 1
-            doPlot = False
-            print("Plot ! temps de simulation :"+str(currentTime))
+        # observables intermédiaires éventuels
+        if (i_obs == 1 or i_obs == 2):
+            if (doPlot and (do_pdf_plot or do_gif_plot)) :
+                q_valid = q[iMin:iMax+1, jMin:jMax+1] # WE ONLY EXTRACT q OVER THE VALID MESH (+ WE ADD THE BORDERS)
+                makeSolutionsPlots(q_valid, currentTime, params, gridOp, pdf_writers, gif_writers) # plots : pdf et/ou gif
+                nPlotsDone += 1
+                doPlot = False
+                print("Plot ! temps de simulation :"+str(currentTime))
+
+        elif (i_obs == 3): # Sup norm of the solution (stability purposes)
+            sup_norms[i] = np.max(abs(q[iMin:iMax+1, jMin:jMax+1]), axis=(0, 1))
+        
+        elif (i_obs == 4): # Sup errors (consistency / convergence purposes) 
+            q_exact = solutions.getSolution(currentTime, gridOp, params["solution_parameters"])
+            sup_norms[i] = np.max(abs(q[iMin:iMax+1, jMin:jMax+1] - q_exact), axis=(0, 1))
+            
 
         #    # Periodicity check :
         #    print("Periodicity test : ", gridOp.isPeriodic(q))
@@ -135,12 +163,31 @@ def getOneApproximateSolution(params):
 
 
     # FINAL TIME REACHED
-    if (nPlots >= 1 and (do_pdf_plot or do_gif_plot)) :
-        q_valid = q[iMin:iMax+1, jMin:jMax+1] # WE ONLY EXTRACT q OVER THE VALID MESH (+ WE ADD THE BORDERS)
-        makeSolutionsPlots(q_valid, currentTime, params, gridOp, pdf_writers, gif_writers) # plots : pdf et/ou gif
-        closePdfWriters(pdf_writers)
-        closeGifWriters(gif_writers)
+    if (i_obs == 1 or i_obs == 2):
+        if (nPlots >= 1 and (do_pdf_plot or do_gif_plot)) :
+            q_valid = q[iMin:iMax+1, jMin:jMax+1] # WE ONLY EXTRACT q OVER THE VALID MESH (+ WE ADD THE BORDERS)
+            makeSolutionsPlots(q_valid, currentTime, params, gridOp, pdf_writers, gif_writers) # plots : pdf et/ou gif
+            closePdfWriters(pdf_writers)
+            closeGifWriters(gif_writers)
 
+    elif (i_obs == 3): # Sup norm of the solution (stability purposes)
+        plot_loc = params["plot_parameters"]["sol_norms"]["plot_loc"]
+        schemeShort, schemeName = plots.getSchemeTitles(params)
+
+        plt.figure(3)
+        var = [(XVEL, "u"), (YVEL, "v"), (PRES, "p")]
+        with PdfPages(plot_loc + "sup_norm_" + schemeShort + ".pdf") as pdf:
+            for k, varName in var:
+                fig, ax = plt.subplots()
+                ax.plot(np.arange(1, i+1), sup_norms[:i, k])
+                ax.set_title("Norme sup de " + varName + " avec le schéma " + schemeName + " \n en fonction du nombre d'itérations pour Tf = " + str(Tf))
+                ax.set_yscale("log")
+                pdf.savefig(fig)
+                plt.close(fig)
+    
+    elif (i_obs == 4): # Sup errors (consistency / convergence purposes) 
+        q_exact = solutions.getSolution(currentTime, gridOp, params["solution_parameters"])
+        sup_norms[i] = np.max(abs(q[iMin:iMax+1, jMin:jMax+1] - q_exact), axis=(0, 1))
 
 
 
