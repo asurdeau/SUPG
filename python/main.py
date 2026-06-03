@@ -11,7 +11,6 @@ import config
 from config import XVEL, YVEL, PRES
 import grid_mod
 import schemes
-from plots import makePlots, openGifWriters, closeGifWriters
 import solutions
 from Quick_Q1_SUPG import getOneApproximateSolution
 

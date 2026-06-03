@@ -11,7 +11,7 @@ import config
 from config import XVEL, YVEL, PRES
 import grid_mod
 import schemes
-from plots import makePlots, openGifWriters, closeGifWriters
+from plots import makeSolutionsPlots, openGifWriters, closeGifWriters, openPdfWriters, closePdfWriters
 import solutions
 
 
@@ -35,10 +35,9 @@ def getOneApproximateSolution(params):
     Tf, CFL = params["time_parameters"].values()
 
     ### plot parameters
-    nPlots = params["plot_parameters"]["nb_plots"]
-    do_pdf_plot = params["plot_parameters"]["do_pdf_plot"]
-    do_gif_plot = params["plot_parameters"]["do_gif_plot"]
-
+    nPlots = params["plot_parameters"]["sol_plots"]["nb_plots"]
+    do_pdf_plot = (params["plot_parameters"]["sol_plots"]["do_pdf_plot"] == "y")
+    do_gif_plot = (params["plot_parameters"]["sol_plots"]["do_gif_plot"] == "y")
 
     # grid creation 
     gridOp = grid_mod.gridOperator(grid_params)
@@ -57,13 +56,19 @@ def getOneApproximateSolution(params):
     q = solutions.getSolution(currentTime, gridOp.xGrid, gridOp.yGrid, params["solution_parameters"])        
     print("test periodicité donnée initiale : ", gridOp.isPeriodic(q))
     
-    ### initial plot
-    if (nPlots > 1) :
-        gif_writers = openGifWriters(params)
-        q_valid = q[iMin:iMax+1, jMin:jMax+1] # WE ONLY EXTRACT q OVER THE VALID MESH (+ WE ADD THE BORDERS)
-        makePlots(q_valid, currentTime, params, gridOp, gif_writers) # plots : pdf et/ou gif
-    else :
-        do_gif_plot = False
+    ### initial observables
+    i_obs = params["plot_parameters"]["observables"]
+    if (i_obs == 1 or i_obs == 2):
+        if (nPlots > 1) :
+            pdf_writers = openPdfWriters(params)
+            gif_writers = openGifWriters(params)
+            q_valid = q[iMin:iMax+1, jMin:jMax+1] # WE ONLY EXTRACT q OVER THE VALID MESH (+ WE ADD THE BORDERS)
+            makeSolutionsPlots(q_valid, currentTime, params, gridOp, pdf_writers, gif_writers) # plots : pdf et/ou gif
+        else :
+            do_gif_plot = False
+    elif (i_obs == 3):
+        nb_iter = 2 * int(Tf / dt_apriori)
+        norm_sup_q = (-1.) * np.ones((nb_iter, 3))
 
     timeBetweenPlots = Tf / (1. * (nPlots - 1))
     nPlotsDone= 1.
@@ -112,7 +117,7 @@ def getOneApproximateSolution(params):
         # Plots éventuels
         if (doPlot and (do_pdf_plot or do_gif_plot)) :
             q_valid = q[iMin:iMax+1, jMin:jMax+1] # WE ONLY EXTRACT q OVER THE VALID MESH (+ WE ADD THE BORDERS)
-            makePlots(q_valid, currentTime, params, gridOp, gif_writers) # plots : pdf et/ou gif
+            makeSolutionsPlots(q_valid, currentTime, params, gridOp, pdf_writers, gif_writers) # plots : pdf et/ou gif
             nPlotsDone += 1
             doPlot = False
             print("Plot ! temps de simulation :"+str(currentTime))
@@ -132,7 +137,8 @@ def getOneApproximateSolution(params):
     # FINAL TIME REACHED
     if (nPlots >= 1 and (do_pdf_plot or do_gif_plot)) :
         q_valid = q[iMin:iMax+1, jMin:jMax+1] # WE ONLY EXTRACT q OVER THE VALID MESH (+ WE ADD THE BORDERS)
-        makePlots(q_valid, currentTime, params, gridOp, gif_writers) # plots : pdf et/ou gif
+        makeSolutionsPlots(q_valid, currentTime, params, gridOp, pdf_writers, gif_writers) # plots : pdf et/ou gif
+        closePdfWriters(pdf_writers)
         closeGifWriters(gif_writers)
 
 
