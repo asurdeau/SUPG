@@ -7,17 +7,17 @@ from config import XVEL, YVEL, PRES
 
 # Analytical solutions : Periodic BC
 def getAnalyticalPeriodicSolution(t, x, y, physParams):
-    theta = physParams["theta"] * np.pi
+    theta = (physParams["theta"] / 180.) * np.pi
     lamb = physParams["lambda"]
     c = physParams["speed"]
     
     alpha = 2. * np.pi / (lamb * max(np.cos(theta), np.sin(theta))) 
     ksi = x * np.cos(theta) + y * np.sin(theta)
 
-    u = -0.5 / c * (np.cos(alpha * ksi + c*t) - np.cos(alpha * ksi - c*t)) * np.cos(theta)
-    v = -0.5 / c * (np.cos(alpha * ksi + c*t) - np.cos(alpha * ksi - c*t)) * np.sin(theta)
+    u = -0.5 / c * (np.cos(alpha * (ksi + c*t)) - np.cos(alpha * (ksi - c*t))) * np.cos(theta)
+    v = -0.5 / c * (np.cos(alpha * (ksi + c*t)) - np.cos(alpha * (ksi - c*t))) * np.sin(theta)
 
-    p = 0.5 * (np.cos(alpha * ksi + c*t) + np.cos(alpha * ksi - c*t))
+    p = 0.5 * (np.cos(alpha * (ksi + c*t)) + np.cos(alpha * (ksi - c*t)))
 
     return np.stack([u, v, p], axis=-1)
 

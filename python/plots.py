@@ -26,6 +26,14 @@ def getSchemeTitles(params):
 
 
 
+####################################################################################################################
+
+#                                                 SOLUTIONS PLOTS                                                  #
+
+####################################################################################################################
+
+
+
 def makeSolutionsPlots(q, time, params, grid, pdf_writers, gif_writers):
     i_obs = params["plot_parameters"]["observables"]
     if (i_obs == 1):
@@ -37,7 +45,7 @@ def makeSolutionsPlots(q, time, params, grid, pdf_writers, gif_writers):
 
 # 1D Solutions
 def makeSolutions1DPlots(q, time, params, grid, pdf_writers, gif_writers):
-    plot_params = params["plot_parameters"]["sol_plots"]
+    plot_params = params["plot_parameters"]
     do_pdf_plot = (plot_params["do_pdf_plot"] == "y")
     do_gif_plot = (plot_params["do_gif_plot"] == "y")
 
@@ -123,7 +131,7 @@ def makeSolutions1DPlots(q, time, params, grid, pdf_writers, gif_writers):
 
 # 2D Plots
 def makeSolutions2DPlots(q, time, params, grid, pdf_writers, gif_writers):
-    plot_params = params["plot_parameters"]["sol_plots"]
+    plot_params = params["plot_parameters"]
     do_pdf_plot = (plot_params["do_pdf_plot"] == "y")
     do_gif_plot = (plot_params["do_gif_plot"] == "y")
 
@@ -187,11 +195,11 @@ def makeSolutions2DPlots(q, time, params, grid, pdf_writers, gif_writers):
 
         for var, filename_exact, title, cmap in exact_plots:
             fig, ax = plt.subplots()
-            cf = ax.contourf(X, Y, q_exact[:, :, var], levels=50, cmap=cmap, rasterized=True)
+            cf = ax.contourf(X, Y, q_exact[:, :, var], levels=numLevels, cmap=cmap)
             # cf = ax.imshow(q[:, :, var].T, origin="lower", cmap=cmap, extent=[X.min(), X.max(), Y.min(), Y.max()], aspect="equal", interpolation="bilinear")
-            ax.contour(X, Y, q_exact[:, :, var], levels=50, colors="k", linewidths=0.3, rasterized=True)
+            ax.contour(X, Y, q_exact[:, :, var], levels=numLevels, colors="k", linewidths=0.3)
             plt.colorbar(cf, ax=ax, label=title, format="%.2f")
-            ax.set_title(f"{title} à t={time}")
+            ax.set_title(f"{title} à t={round(time, 1)}")
             ax.set_xlabel("x")
             ax.set_ylabel("y")
             ax.set_aspect("equal")
@@ -216,8 +224,8 @@ def makeSolutions2DPlots(q, time, params, grid, pdf_writers, gif_writers):
 
 # GIF Open and Close
 def openGifWriters(params):
-    plot_loc = params["plot_parameters"]["sol_plots"]["plot_loc"]
-    gif_time = 1000. * params["plot_parameters"]["sol_plots"]["gif_time"] # Conversion s to ms !!
+    plot_loc = params["plot_parameters"]["plot_loc"]
+    gif_time = 1000. * params["plot_parameters"]["gif_time"] # Conversion s to ms !!
     schemeShort = getSchemeTitles(params)[0]
     plots = [("U_"+schemeShort, ), ("V_"+schemeShort, ), ("P_"+schemeShort, ), ("U_exact", ), ("V_exact", ), ("P_exact", )]
     return {
@@ -240,7 +248,7 @@ def closeGifWriters(gif_writers):
 
 # PDF open and close
 def openPdfWriters(params):
-    plot_loc = params["plot_parameters"]["sol_plots"]["plot_loc"]
+    plot_loc = params["plot_parameters"]["plot_loc"]
     schemeShort = getSchemeTitles(params)[0]
     plots = ["U_"+schemeShort, "V_"+schemeShort, "P_"+schemeShort, "U_exact", "V_exact", "P_exact"]
     return {
@@ -253,3 +261,35 @@ def closePdfWriters(pdf_writers):
     for writer in pdf_writers.values():
         writer.close()
     print("PDFs sauvegardés !")
+
+
+
+####################################################################################################################
+
+#                                              ERRORS AND NORMS PLOTS                                              #
+
+####################################################################################################################
+
+
+
+def makeNormPlots(norms, i_obs, nb_iter, final_time, params):
+    plot_loc = params["plot_parameters"]["plot_loc"]
+    schemeShort, schemeName = getSchemeTitles(params)
+
+    if (i_obs == 3):
+        obs_title = "Norme sup"
+        obs_fileName = "sup_norm_"
+    if (i_obs == 4):
+        obs_title = "Erreur sup"
+        obs_fileName = "sup_error_"
+
+    plt.figure(3)
+    var = [(XVEL, "u"), (YVEL, "v"), (PRES, "p")]
+    with PdfPages(plot_loc + obs_fileName + schemeShort + ".pdf") as pdf:
+        for k, varName in var:
+            fig, ax = plt.subplots()
+            ax.plot(np.arange(1, nb_iter+1), norms[:nb_iter, k])
+            ax.set_title(obs_title+" de " + varName + " avec le schéma " + schemeName + " \n en fonction du nombre d'itérations pour Tf = " + str(final_time))
+            ax.set_yscale("log")
+            pdf.savefig(fig)
+            plt.close(fig)

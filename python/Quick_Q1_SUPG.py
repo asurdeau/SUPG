@@ -14,7 +14,7 @@ from config import XVEL, YVEL, PRES
 import grid_mod
 import schemes
 import plots
-from plots import makeSolutionsPlots, openGifWriters, closeGifWriters, openPdfWriters, closePdfWriters
+from plots import makeSolutionsPlots, openGifWriters, closeGifWriters, openPdfWriters, closePdfWriters, makeNormPlots
 import solutions
 
 
@@ -38,9 +38,9 @@ def getOneApproximateSolution(params):
     Tf, CFL = params["time_parameters"].values()
 
     ### plot parameters
-    nPlots = params["plot_parameters"]["sol_plots"]["nb_plots"]
-    do_pdf_plot = (params["plot_parameters"]["sol_plots"]["do_pdf_plot"] == "y")
-    do_gif_plot = (params["plot_parameters"]["sol_plots"]["do_gif_plot"] == "y")
+    nPlots = params["plot_parameters"]["nb_plots"]
+    do_pdf_plot = (params["plot_parameters"]["do_pdf_plot"] == "y")
+    do_gif_plot = (params["plot_parameters"]["do_gif_plot"] == "y")
 
     # grid creation 
     gridOp = grid_mod.gridOperator(grid_params)
@@ -147,7 +147,7 @@ def getOneApproximateSolution(params):
         
         elif (i_obs == 4): # Sup errors (consistency / convergence purposes) 
             q_exact = solutions.getSolution(currentTime, gridOp, params["solution_parameters"])
-            sup_norms[i] = np.max(abs(q[iMin:iMax+1, jMin:jMax+1] - q_exact), axis=(0, 1))
+            sup_errors[i] = np.max(abs(q[iMin:iMax+1, jMin:jMax+1] - q_exact), axis=(0, 1))
             
 
         #    # Periodicity check :
@@ -171,23 +171,10 @@ def getOneApproximateSolution(params):
             closeGifWriters(gif_writers)
 
     elif (i_obs == 3): # Sup norm of the solution (stability purposes)
-        plot_loc = params["plot_parameters"]["sol_norms"]["plot_loc"]
-        schemeShort, schemeName = plots.getSchemeTitles(params)
-
-        plt.figure(3)
-        var = [(XVEL, "u"), (YVEL, "v"), (PRES, "p")]
-        with PdfPages(plot_loc + "sup_norm_" + schemeShort + ".pdf") as pdf:
-            for k, varName in var:
-                fig, ax = plt.subplots()
-                ax.plot(np.arange(1, i+1), sup_norms[:i, k])
-                ax.set_title("Norme sup de " + varName + " avec le schéma " + schemeName + " \n en fonction du nombre d'itérations pour Tf = " + str(Tf))
-                ax.set_yscale("log")
-                pdf.savefig(fig)
-                plt.close(fig)
+        makeNormPlots(sup_norms, i_obs, i, Tf, params)
     
     elif (i_obs == 4): # Sup errors (consistency / convergence purposes) 
-        q_exact = solutions.getSolution(currentTime, gridOp, params["solution_parameters"])
-        sup_norms[i] = np.max(abs(q[iMin:iMax+1, jMin:jMax+1] - q_exact), axis=(0, 1))
+        makeNormPlots(sup_errors, i_obs, i, Tf, params)
 
 
 
