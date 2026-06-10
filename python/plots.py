@@ -9,6 +9,9 @@ import os
 from config import XVEL, YVEL, PRES 
 import solutions
 
+
+# SMALL ANNEXE ROUINES
+
 def getSchemeTitles(params):
     schemeChoice = params["scheme_choice"]
 
@@ -21,8 +24,63 @@ def getSchemeTitles(params):
     elif (schemeChoice == 3):
         schemeShort = "modSUPG"
         schemeName = "SUPG modifié"
+    elif (schemeChoice == 4):
+        schemeShort = "optModSUPG"
+        schemeName = "SUPG modifié optim"
     
     return schemeShort, schemeName
+
+
+def choicePrints(params):
+    # getting parameters to print
+    scheme = getSchemeTitles(params)[1]
+    simu = getSimuPrint(params["solution_parameters"]["simulation_choice"])
+    obs = getObsPrint(params["plot_parameters"]["observables"])
+    plotLoc = params["plot_parameters"]["plot_loc"]
+
+    # prints
+    print("===================================================================")
+    print("")
+    print("Schéma testé : "+scheme)
+    print("Choix de simulation : "+simu)
+    print("Observable testée : "+obs)
+    print("Emplacement des résultats : "+plotLoc)
+    print("")
+    print("===================================================================")
+    print("")
+
+
+def getSimuPrint(simulationChoice):
+    if (simulationChoice == 1):
+        return "etat constant"
+    elif (simulationChoice == 2):
+        return "random noise"
+    elif (simulationChoice == 3):
+        return "cst + small gaussian"
+    elif (simulationChoice == 4):
+        return "checkerboard"
+    elif (simulationChoice == 5):
+        return "smooth oblique flow"
+    elif (simulationChoice == 6):
+        return "stationary vortex"
+    elif (simulationChoice == 5):
+        return "stationary vortex + small gaussian perturbation"
+    
+
+def getObsPrint(obsChoice):
+    if (obsChoice == 1):
+        return "figure(s) 2D"
+    elif (obsChoice == 2):
+        return "figure(s) 1D"
+    elif (obsChoice == 3):
+        return "normes sup de la solution approchée"
+    elif (obsChoice == 4):
+        return "erreurs avec la solution exacte"
+    elif (obsChoice == 5):
+        return "test de convergence"
+    
+
+
 
 
 
@@ -129,6 +187,7 @@ def makeSolutions1DPlots(q, time, params, grid, pdf_writers, gif_writers):
         plt.close()
 
 
+
 # 2D Plots
 def makeSolutions2DPlots(q, time, params, grid, pdf_writers, gif_writers):
     plot_params = params["plot_parameters"]
@@ -140,7 +199,7 @@ def makeSolutions2DPlots(q, time, params, grid, pdf_writers, gif_writers):
     # On ne prend en compte une éventuelle solution exacte que si on la connait 
     do_exact_pdf_plot = False
     do_exact_gif_plot = False
-    if (params["solution_parameters"]["simulation_choice"] == 5):
+    if (params["solution_parameters"]["simulation_choice"] == 5 or params["solution_parameters"]["simulation_choice"] == 6):
         do_exact_pdf_plot = (plot_params["do_exact_pdf_plot"] == "y")
         do_exact_gif_plot = (plot_params["do_exact_gif_plot"] == "y")
 
@@ -160,7 +219,6 @@ def makeSolutions2DPlots(q, time, params, grid, pdf_writers, gif_writers):
     for var, filename, title, cmap in plots:
         fig, ax = plt.subplots()
         cf = ax.contourf(X, Y, q[:, :, var], levels=numLevels, cmap=cmap)
-        # cf = ax.imshow(q[:, :, var].T, origin="lower", cmap=cmap, extent=[X.min(), X.max(), Y.min(), Y.max()], aspect="equal", interpolation="bilinear")
         ax.contour(X, Y, q[:, :, var], levels=numLevels, colors="k", linewidths=0.3)
         # plt.colorbar(cf, ax=ax, label=title, format="%.2f")
         plt.colorbar(cf, ax=ax, label=title)
@@ -196,7 +254,6 @@ def makeSolutions2DPlots(q, time, params, grid, pdf_writers, gif_writers):
         for var, filename_exact, title, cmap in exact_plots:
             fig, ax = plt.subplots()
             cf = ax.contourf(X, Y, q_exact[:, :, var], levels=numLevels, cmap=cmap)
-            # cf = ax.imshow(q[:, :, var].T, origin="lower", cmap=cmap, extent=[X.min(), X.max(), Y.min(), Y.max()], aspect="equal", interpolation="bilinear")
             ax.contour(X, Y, q_exact[:, :, var], levels=numLevels, colors="k", linewidths=0.3)
             plt.colorbar(cf, ax=ax, label=title, format="%.2f")
             ax.set_title(f"{title} à t={round(time, 1)}")
@@ -289,7 +346,36 @@ def makeNormPlots(norms, i_obs, nb_iter, final_time, params):
         for k, varName in var:
             fig, ax = plt.subplots()
             ax.plot(np.arange(1, nb_iter+1), norms[:nb_iter, k])
-            ax.set_title(obs_title+" de " + varName + " avec le schéma " + schemeName + " \n en fonction du nombre d'itérations pour Tf = " + str(final_time))
+            ax.set_title(obs_title+" de " + varName + " avec le schéma " + schemeName + " " \
+                            "\n en fonction du nombre d'itérations pour Tf = " + str(final_time))
             ax.set_yscale("log")
+            pdf.savefig(fig)
+            plt.close(fig)
+
+
+
+def makeConvTestPlots(hList, supErrorsList, L2ErrorsList, final_time, params):
+    plot_loc = params["plot_parameters"]["plot_loc"]
+    schemeShort, schemeName = getSchemeTitles(params)
+
+    plt.figure(3)
+    var = [(XVEL, "u"), (YVEL, "v"), (PRES, "p")]
+    with PdfPages(plot_loc + "test_conv_"+ schemeShort + ".pdf") as pdf:
+        for k, varName in var:
+            # Regression de pente 1 pour les log des deux jeux de données :
+            coeffSup = np.exp(np.sum(np.log(supErrorsList[:, k]) - np.log(hList)) / len(hList))
+            coeffL2 = np.exp(np.sum(np.log(L2ErrorsList[:, k]) - np.log(hList)) / len(hList))
+
+            # Plots
+            fig, ax = plt.subplots()
+            ax.set_title("Erreurs sur " + varName + " avec le schéma " + schemeName + " \n " \
+                            "en fonction du nombre nombre de points pour Tf = " + str(final_time))
+            ax.plot(hList, supErrorsList[:, k], label="Erreur $L^\infty$", color="blue")
+            ax.plot(hList, coeffSup * hList, label="pente 1", color="blue", linestyle="--", alpha=0.5)
+            ax.plot(hList, L2ErrorsList[:, k], label="Erreur $L^2$", color="orange")
+            ax.plot(hList, coeffL2 * hList, label="pente 1", color="orange",  linestyle="--", alpha=0.5)
+            ax.set_xscale("log")
+            ax.set_yscale("log")
+            ax.legend()
             pdf.savefig(fig)
             plt.close(fig)

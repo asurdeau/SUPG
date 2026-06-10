@@ -24,8 +24,47 @@ def getAnalyticalPeriodicSolution(t, x, y, physParams):
 
 
 
-# Analytical divergence-free solutions : Dirichlet BC
+# Analytical stationary divergence-free solutions : Dirichlet BC
+def getRadialProfile(X, Y, x0, y0, r0, profileChoice):
+    Rho = np.sqrt((X- x0)**2 + (Y- y0)**2) / r0
+    F = np.zeros((np.shape(X)))
 
+    if (profileChoice == 1):
+        F[Rho < 1] = 12. * np.pi * np.sqrt(0.981) / (r0 * (np.sqrt(315. * np.pi**2 - 2048.))) \
+                     * (1. + np.cos(np.pi * Rho[Rho < 1]))**2
+    if (profileChoice == 2):
+        F[Rho < 1] = 0.4 * np.exp(- 0.5 / (1. - Rho[Rho < 1])**2) \
+                     * np.sqrt(9.81 / (r0 * (1. - Rho[Rho < 1])**3))
+    
+    return F
+    
+
+def getVortexSolution(X, Y, solParams):
+
+    r0, profileChoice, [x0, y0] = solParams["vortex_solution"].values()
+    F = getRadialProfile(X, Y, x0, y0, r0, profileChoice)
+
+    u = F * (Y - y0)
+    v = - F * (X - x0)
+    p = np.ones((np.shape(X)))
+
+    return np.stack([u, v, p], axis=-1)
+
+
+def getPerturbedVortexSolution(X, Y, solParams):
+    
+    q = getVortexSolution(X, Y, solParams)
+
+    n, x0, y0, r0 = solParams["gaussian_noise"]
+    eps = 0.1**n
+
+    p = np.zeros((np.shape(X)))
+    rho = np.sqrt( (X - x0)**2 + (Y - y0)**2 ) / r0
+    p[rho < 1.] = eps * np.exp( 0.5 * ( 1. - 1./(1. - rho[rho < 1])**2 ) )
+
+    q[:, :, PRES] += p
+
+    return q
 
 
 
@@ -89,3 +128,9 @@ def getSolution(t, grid, solParams):
 
     if simChoice == 5 : # 5 : analytical periodic
         return getAnalyticalPeriodicSolution(t, X, Y, solParams["analytical_periodic"])
+
+    if simChoice == 6 : # 6 : stationary vortex
+        return getVortexSolution(X, Y, solParams)
+    
+    if simChoice == 7 : # 7 : stationary + pressure perturbation
+        return getPerturbedVortexSolution(X, Y, solParams)

@@ -40,38 +40,6 @@ class gridOperator:
         self.yGrid = np.transpose(yy)
 
 
-
-    # def periodize(self, q) :
-    #     iMin, iMax, jMin, jMax = self.valid_grid
-    #     nGhost = iMin
-        
-    #     # BANDES
-    #     # bande verticale à gauche 
-    #     q[:iMin, jMin:jMax+1] = q[iMax-nGhost+1:iMax+1, jMin:jMax+1]
-
-    #     # bande verticale à droite
-    #     q[iMax+1:, jMin:jMax+1] = q[iMin:iMin+nGhost, jMin:jMax+1]
-
-    #     # bande horizontale en bas
-    #     q[iMin:iMax+1, :jMin] = q[iMin:iMax+1, jMax-nGhost+1:jMax+1]
-
-    #     # bande horizontale en haut
-    #     q[iMin:iMax+1, jMax+1:] = q[iMin:iMax+1, jMin:jMin+nGhost]
-
-    #     # COINS
-    #     # bas gauche 
-    #     q[:iMin, :jMin] = q[iMax-nGhost+1:iMax+1, jMax-nGhost+1:jMax+1]
-
-    #     # bas droit 
-    #     q[iMax+1:, :jMin] = q[iMin:iMin+nGhost, jMax-nGhost+1:jMax+1]
-
-    #     # haut gauche 
-    #     q[:iMin, jMax+1:] = q[iMax-nGhost+1:iMax+1, jMin:jMin+nGhost]
-
-    #     # bas droit 
-    #     q[iMax+1:, jMax+1:] = q[iMin:iMin+nGhost, jMin:jMin+nGhost]
-
-    #     return q
     
     # REMEMBER : iMax's value is the same as iMin one's 
     def periodize(self, q) :
@@ -108,24 +76,41 @@ class gridOperator:
     
 
 
-    # def isPeriodic(self, q) :
-    #     iMin, iMax, jMin, jMax = self.valid_grid
-    #     nGhost = iMin
-        
-    #     # BANDES
-    #     # bande verticale à gauche 
-    #     test = (abs(q[:iMin] - q[iMax-nGhost+1:iMax+1]) < 1.e-16).all()
+    # REMEMBER : iMax's value is the same as iMin one's 
+    def dirichlet(self, q) :
+        iMin, iMax, jMin, jMax = self.valid_grid
 
-    #     # bande verticale à droite
-    #     test = test and (abs(q[iMax+1:] - q[iMin:iMin+nGhost]) < 1.e-16).all()
 
-    #     # bande horizontale en bas
-    #     test = test and (abs(q[: jMin] - q[:jMax-nGhost+1:jMax+1]) < 1.e-16).all()
+        # Dirichlet homogène 0 pour les vitesses
+        # bande verticale à gauche 
+        q[:iMin+1, jMin:jMax+1, :] = 0.
 
-    #     # bande horizontale en haut
-    #     test = test and (abs(q[jMax+1:] - q[jMin:jMin+nGhost]) < 1.e-16).all()
+        # bande verticale à droite
+        q[iMax:, jMin:jMax+1, :] = 0.
 
-    #     return test
+        # bande horizontale en bas
+        q[iMin:iMax+1, :jMin+1, :] = 0.
+
+        # bande horizontale en haut
+        q[iMin:iMax+1, jMax:, :] = 0.
+
+
+        # Dirichlet homogène 1 pour la pression
+        # bande verticale à gauche 
+        q[:iMin+1, jMin:jMax+1, PRES] = 1.
+
+        # bande verticale à droite
+        q[iMax:, jMin:jMax+1, PRES] = 1.
+
+        # bande horizontale en bas
+        q[iMin:iMax+1, :jMin+1, PRES] = 1.
+
+        # bande horizontale en haut
+        q[iMin:iMax+1, jMax:, PRES] = 1.
+
+        return q
+    
+
     
     def isPeriodic(self, q) :
         iMin, iMax, jMin, jMax = self.valid_grid

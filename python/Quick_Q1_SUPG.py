@@ -14,7 +14,8 @@ from config import XVEL, YVEL, PRES
 import grid_mod
 import schemes
 import plots
-from plots import makeSolutionsPlots, openGifWriters, closeGifWriters, openPdfWriters, closePdfWriters, makeNormPlots
+from plots import makeSolutionsPlots, openGifWriters, closeGifWriters, openPdfWriters, closePdfWriters, makeNormPlots, makeConvTestPlots
+from plots import getSchemeTitles
 import solutions
 
 
@@ -57,8 +58,10 @@ def getOneApproximateSolution(params):
     ### Initialise data
     q = np.zeros((Nx + 2*nGhost, Ny + 2*nGhost, 3))
     q[iMin:iMax+1, jMin:jMax+1] = solutions.getSolution(currentTime, gridOp, params["solution_parameters"])
-    gridOp.periodize(q)      
+    gridOp.periodize(q)
+    # gridOp.dirichlet(q)
     print("test periodicité donnée initiale : ", gridOp.isPeriodic(q))
+
     
     ### initial observables
     i_obs = params["plot_parameters"]["observables"]
@@ -82,7 +85,16 @@ def getOneApproximateSolution(params):
         sup_errors = (-1.) * np.ones((nb_iter, 3))
         sup_errors[0] = 0.
 
-    timeBetweenPlots = Tf / (1. * (nPlots - 1))
+
+    # nb_iter = 2 * int(Tf / dt_apriori)
+    # divFlux_diff = (-1.) * np.ones(nb_iter)
+
+    if nPlots > 1 :
+        timeBetweenPlots = Tf / (1. * (nPlots - 1))
+    else : # Only eventual plot is at the end : "currentTime + dt_apriori > nPlotsDone * timeBetweenPlots" never true
+        timeBetweenPlots = 2 * Tf
+
+    
     nPlotsDone= 1.
     doPlot = False
 
@@ -94,8 +106,6 @@ def getOneApproximateSolution(params):
     # starting time of the loop
     startTimeLoop = time.time()
     while (abs(currentTime - Tf) > 1.e-10) :
-        i += 1
-        
         # currentTime += dt     # : accumule les erreurs d'arrondis !!!!
         # currentTime = i * dt  # : le meilleur choix quand le pas est constant 
         # historique_dt.append(dt)
@@ -120,17 +130,19 @@ def getOneApproximateSolution(params):
             else :
                 currentTime += dt_apriori
 
-
         # Div . Fluxes computations
         divF = schemes.getApproxDivFlux(q, gridOp, params["scheme_choice"], operators)
+        # divF_SUPG = schemes.getApproxDivFlux(q, gridOp, 2, operators)
+
+        # divFlux_diff[i] = np.max(abs(divF - divF_SUPG))
 
 
         # Update
         q[iMin:iMax+1, jMin:jMax+1] += - dt * divF[iMin:iMax+1, jMin:jMax+1]
 
-
         # Conditions périodiques :
         gridOp.periodize(q)
+        # gridOp.dirichlet(q)
 
 
         # observables intermédiaires éventuels
@@ -141,6 +153,7 @@ def getOneApproximateSolution(params):
                 nPlotsDone += 1
                 doPlot = False
                 print("Plot ! temps de simulation :"+str(currentTime))
+                # print(divFlux_diff[i])
 
         elif (i_obs == 3): # Sup norm of the solution (stability purposes)
             sup_norms[i] = np.max(abs(q[iMin:iMax+1, jMin:jMax+1]), axis=(0, 1))
@@ -150,19 +163,21 @@ def getOneApproximateSolution(params):
             sup_errors[i] = np.max(abs(q[iMin:iMax+1, jMin:jMax+1] - q_exact), axis=(0, 1))
             
 
-        #    # Periodicity check :
-        #    print("Periodicity test : ", gridOp.isPeriodic(q))
+        i += 1
     
+
     
     # end time of loop
     endTimeLoop = time.time()
     print("Temps de calcul boucle : ", endTimeLoop - startTimeLoop)
+    print(" ")
 
+    # print("ecart flux", np.max(divFlux_diff))
 
     #############################################################################################################
 
 
-    # FINAL TIME REACHED
+    # FINAL TIME REACHED : last observation
     if (i_obs == 1 or i_obs == 2):
         if (nPlots >= 1 and (do_pdf_plot or do_gif_plot)) :
             q_valid = q[iMin:iMax+1, jMin:jMax+1] # WE ONLY EXTRACT q OVER THE VALID MESH (+ WE ADD THE BORDERS)
@@ -175,6 +190,88 @@ def getOneApproximateSolution(params):
     
     elif (i_obs == 4): # Sup errors (consistency / convergence purposes) 
         makeNormPlots(sup_errors, i_obs, i, Tf, params)
+    
+
+    return q[iMin:iMax+1, jMin:jMax+1]
+
+
+
+####################################################################################################################
+
+#                                                 AUTRES ROUTINES                                                  #
+
+####################################################################################################################
+
+
+
+def getConvergenceTest(nList, params):
+    
+    newParams = params.copy()
+    finalTime = params["time_parameters"]["end_time"]
+    supErrorsList = (-1.) * np.ones((len(nList), 3))
+    L2ErrorsList = (-1.) * np.ones((len(nList), 3))
+    plotLoc = newParams["plot_parameters"]["plot_loc"]
+    xL, xR, yL, yR = params["grid_parameters"]["domain_parameters"].values()
+
+    hList = max(xR - xL, yR - yL) / (np.array(nList) - 1)
+
+    i = 0
+    for n in nList :
+        newParams["grid_parameters"]["mesh_parameters"]["Nx"] = n
+        newParams["grid_parameters"]["mesh_parameters"]["Ny"] = n
+
+        print("calcul de solution pour h = "+str(hList[i]))
+        q = getOneApproximateSolution(newParams)
+
+        grid_params = newParams["grid_parameters"]
+        gridOp = grid_mod.gridOperator(grid_params)
+        q_exact = solutions.getSolution(finalTime, gridOp, params["solution_parameters"])
+        
+        supErrorsList[i] = np.max(abs(q - q_exact))
+        dx, dy = gridOp.steps
+        L2ErrorsList[i] = dx * dy * np.sum( (q - q_exact)**2 )
+
+
+        # Plotting successive figures
+        # if (True) :
+        if (False) :
+            plots = [
+                (XVEL, "U", "Vitesse U", "RdBu_r"),
+                (YVEL, "V", "Vitesse V", "RdBu_r"),
+                (PRES, "P", "Pression",  "viridis"),
+            ]
+
+            numLevels = params["plot_parameters"]["levels"]
+            X = gridOp.xValidGrid
+            Y = gridOp.yValidGrid
+
+            schemeShort, schemeName = getSchemeTitles(params)
+
+            for var, filename, title, cmap in plots:
+                fig, ax = plt.subplots()
+                cf = ax.contourf(X, Y, q[:, :, var], levels=numLevels, cmap=cmap)
+                ax.contour(X, Y, q[:, :, var], levels=numLevels, colors="k", linewidths=0.3)
+                # plt.colorbar(cf, ax=ax, label=title, format="%.2f")
+                plt.colorbar(cf, ax=ax, label=title)
+                ax.set_title(f"{title} avec le schéma "+schemeName+f" à t={round(finalTime, 1)} \n avec "+str(n)+" points")
+                ax.set_xlabel("x")
+                ax.set_ylabel("y")
+                ax.set_aspect("equal")
+                plt.tight_layout()
+                plt.savefig(plotLoc+filename+"_"+schemeShort+"_"+str(n))
+                
+                plt.close()
+
+        i += 1
+
+    # Writing content to a file
+    with open('results.txt', 'w') as f:
+        for k in range(len(nList)):
+            f.write(str(hList[k])+"     "+str(supErrorsList[k, 2])+"     "+str(L2ErrorsList[k, 2])+"\n")
+
+
+    makeConvTestPlots(hList, supErrorsList, L2ErrorsList, finalTime, params)
+
 
 
 
