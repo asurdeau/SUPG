@@ -6,28 +6,28 @@ grid_parameters :
     yR : 1.
 
   mesh_parameters : # Nx and Ny are the NUMBER OF POINTS, NOT CELLS
-    Nx : 401 
-    Ny : 401
+    Nx : 81 
+    Ny : 81
     nGhost : 1
 
 
 time_parameters : 
-  end_time : 1.
-  CFL_number : 0.5
+  end_time : 0.35
+  CFL_number : 0.1
 
 
-nList : [101, 201, 401, 801, 1601]
+nList : [101, 201, 401, 801]
 
 
-scheme_choice : 3 # 1 : CLASSICAL FV UPWIND || 2 : LUMPED SUPG || 3 : "À la carte" lumped SUPG  || 4 : "optim" "À la carte" lumped SUPG 
+scheme_choice : 4 # 1 : CLASSICAL FV UPWIND || 2 : LUMPED SUPG || 3 : "À la carte" lumped SUPG  || 4 : "optim" "À la carte" lumped SUPG 
 
 
 solution_parameters :
-  simulation_choice : 5                                 # 1 : constant || 2 : 0 + random noise || 3 : constant + small gaussian || 4 : checkerboard || 5 : analytical periodic || 6 : stationary vortex || 7 : stationary vortex + pressure perturbation
+  simulation_choice : 7                                 # 1 : constant || 2 : 0 + random noise || 3 : constant + small gaussian || 4 : checkerboard || 5 : analytical periodic || 6 : stationary vortex || 7 : stationary vortex + pressure perturbation
   constant : [1., 2., 3.]
   noise_range : [12, 14]                                # n1, n2 for the range written as  [-10^(-n1), -10^(-n2)] u [10^(-n2), 10^(-n1)]
   gaussian_noise :                                      # perturbation for the pressure
-    order : 3                                           # "-" order of the height
+    order : 2                                           # "-" order of the height
     center : [0.4, 0.43]                                # the center 
     radius : 0.1                                        # the radius
   checkerboard : [[1., -1.], [1., -1.], [1., -1.]]      # values for u, v and p (first is the one at (0, 0) and other of the same checkerboard)
@@ -37,16 +37,16 @@ solution_parameters :
     speed : 1.
   vortex_solution :
     radius : 0.45 
-    profile_choice : 1                                  # 1 : C^6 profile || 2 : C^inf profile || 3 : C^0 profile
+    profile_choice : 2                                  # 1 : C^6 profile || 2 : C^inf profile || 3 : C^0 profile
     center : [0.5, 0.5] 
  
  
 plot_parameters :
-  observables : 5           # 1 : 2d Plots of solutions || 2: 1d Plots of solutions || 3: norms of the approx sol || 4: Errors with exact || 5: CV tests
+  observables : 1          # 1 : 2d Plots of solutions || 2: 1d Plots of solutions || 3: norms of the approx sol || 4: Errors with exact || 5: CV tests || 6: divFlux comparisons between two schemes
   # Common parameters
-  plot_loc : "Plots/Tests/smooth_oblique_flow/45_deg/"
+  plot_loc : "Plots/Tests/perturbed_vortex/"
   # 2d and 1d plots parameters
-  nb_plots : 0             # Counting the initial one ! If < 1 no gif !
+  nb_plots : 2             # Counting the initial one ! If < 1 no gif !
   do_pdf_plot : y          # y -> yes || anything else -> no (no "" but still counted as a string)
   do_exact_pdf_plot : 
   do_gif_plot : 
@@ -56,6 +56,7 @@ plot_parameters :
   levels : 10               # number of levels for contour 2d plots
   # 1d parameters
   section : 3               # 1 : horizontal middle || 2 : vertical middle || 3 : diagonal
+  comparison_scheme : 2     # 1 : CLASSICAL FV UPWIND || 2 : LUMPED SUPG || 3 : "À la carte" lumped SUPG  || 4 : "optim" "À la carte" lumped SUPG
   
   
 

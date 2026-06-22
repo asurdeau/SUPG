@@ -55,7 +55,7 @@ def getPerturbedVortexSolution(X, Y, solParams):
     
     q = getVortexSolution(X, Y, solParams)
 
-    n, x0, y0, r0 = solParams["gaussian_noise"]
+    n, [x0, y0], r0 = solParams["gaussian_noise"].values()
     eps = 0.1**n
 
     p = np.zeros((np.shape(X)))
@@ -115,9 +115,9 @@ def getSolution(t, grid, solParams):
 
     if simChoice == 4 : # 4 : checkerboard
         u0, v0, p0 = solParams["checkerboard"]
-        u = u0[0] * np.ones((np.shape(x)))
-        v = v0[0] * np.ones((np.shape(x)))
-        p = v0[0] * np.ones((np.shape(x)))
+        u = u0[0] * np.ones((np.shape(X)))
+        v = v0[0] * np.ones((np.shape(X)))
+        p = v0[0] * np.ones((np.shape(X)))
 
         u[1::2, 1::2] = u0[1]
         v[1::2, 1::2] = v0[1]
@@ -129,8 +129,8 @@ def getSolution(t, grid, solParams):
     if simChoice == 5 : # 5 : analytical periodic
         return getAnalyticalPeriodicSolution(t, X, Y, solParams["analytical_periodic"])
 
-    if simChoice == 6 : # 6 : stationary vortex
+    if ( (simChoice == 6) or (simChoice == 7 and t > 1.e-12) ) : # 6 : stationary vortex
         return getVortexSolution(X, Y, solParams)
     
-    if simChoice == 7 : # 7 : stationary + pressure perturbation
+    if (simChoice == 7 and t < 1.e-12) : # 7 : stationary + pressure perturbation
         return getPerturbedVortexSolution(X, Y, solParams)

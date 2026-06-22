@@ -7,6 +7,8 @@ import yaml
 import math
 from collections import defaultdict
 import time
+import tracemalloc
+
 
 # Modules perso
 import config
@@ -30,10 +32,14 @@ import solutions
 def getOneApproximateSolution(params):
     # DATA extraction from yaml file
     operators = yaml.load(open("operators.yaml"),Loader=yaml.SafeLoader)
+    operatorsCoeff = schemes.extract_operators(operators)
 
     ### grid parameters
     grid_params = params["grid_parameters"]
     Nx, Ny, nGhost = grid_params["mesh_parameters"].values()
+    simulationChoice = params["solution_parameters"]["simulation_choice"]
+    if simulationChoice == 7 :
+        params["plot_parameters"]["nb_plots"] = 1
 
     ### time parameters
     Tf, CFL = params["time_parameters"].values()
@@ -42,6 +48,9 @@ def getOneApproximateSolution(params):
     nPlots = params["plot_parameters"]["nb_plots"]
     do_pdf_plot = (params["plot_parameters"]["do_pdf_plot"] == "y")
     do_gif_plot = (params["plot_parameters"]["do_gif_plot"] == "y")
+
+    # scheme choice :
+    schemeChoice = params["scheme_choice"]
 
     # grid creation 
     gridOp = grid_mod.gridOperator(grid_params)
@@ -58,51 +67,58 @@ def getOneApproximateSolution(params):
     ### Initialise data
     q = np.zeros((Nx + 2*nGhost, Ny + 2*nGhost, 3))
     q[iMin:iMax+1, jMin:jMax+1] = solutions.getSolution(currentTime, gridOp, params["solution_parameters"])
-    gridOp.periodize(q)
-    # gridOp.dirichlet(q)
-    print("test periodicité donnée initiale : ", gridOp.isPeriodic(q))
+    
+    # Boundary conditions 
+    if (simulationChoice == 6 or simulationChoice == 7):        # vortex simulation -> Dirichlet BC
+        gridOp.dirichlet(q)
+    else :                                                      # else (default) -> periodic BC 
+        gridOp.periodize(q) 
+        print("test periodicité donnée initiale : ", gridOp.isPeriodic(q))
 
     
     ### initial observables
+    nPlotsDone = 1.
+    doPlot = False
+
+    nb_iter = 2 * int(Tf / dt_apriori) # taking a margin for the total number of iterations
+    divFluxTimeTable = - np.ones(nb_iter)
+    updateTimeTable = - np.ones(nb_iter)
+
     i_obs = params["plot_parameters"]["observables"]
     if (i_obs == 1 or i_obs == 2):
+        pdf_writers = openPdfWriters(params)
+        gif_writers = openGifWriters(params)
         if (nPlots > 1) :
-            pdf_writers = openPdfWriters(params)
-            gif_writers = openGifWriters(params)
             q_valid = q[iMin:iMax+1, jMin:jMax+1] # WE ONLY EXTRACT q OVER THE VALID MESH (+ WE ADD THE BORDERS)
             makeSolutionsPlots(q_valid, currentTime, params, gridOp, pdf_writers, gif_writers) # plots : pdf et/ou gif
         else :
             do_gif_plot = False
 
     elif (i_obs == 3): # Sup norm of the solution (stability purposes)
-        nb_iter = 2 * int(Tf / dt_apriori)    # taking a margin for the total number of iterations (just ignore -1 values)
-        print(nb_iter)
         sup_norms = (-1.) * np.ones((nb_iter, 3))
         sup_norms[0] = np.max(abs(q[iMin:iMax+1, jMin:jMax+1]), axis=(0, 1))
     
     elif (i_obs == 4): # Sup errors (consistency / convergence purposes) 
-        nb_iter = 2 * int(Tf / dt_apriori)
         sup_errors = (-1.) * np.ones((nb_iter, 3))
         sup_errors[0] = 0.
 
+    elif (i_obs == 6): # divFlux differences
+        schemeChoiceComparison = params["plot_parameters"]["comparison_scheme"]
+        divFlux_diff = (-1.) * np.ones(nb_iter)
 
-    # nb_iter = 2 * int(Tf / dt_apriori)
-    # divFlux_diff = (-1.) * np.ones(nb_iter)
 
     if nPlots > 1 :
         timeBetweenPlots = Tf / (1. * (nPlots - 1))
     else : # Only eventual plot is at the end : "currentTime + dt_apriori > nPlotsDone * timeBetweenPlots" never true
         timeBetweenPlots = 2 * Tf
 
-    
-    nPlotsDone= 1.
-    doPlot = False
+
 
     #############################################################################################################
 
 
 
-    # TIME LOOP
+    # TIME LOOP : AVOID CLASS / DICTIONNARY LOOKUPS !
     # starting time of the loop
     startTimeLoop = time.time()
     while (abs(currentTime - Tf) > 1.e-10) :
@@ -131,18 +147,26 @@ def getOneApproximateSolution(params):
                 currentTime += dt_apriori
 
         # Div . Fluxes computations
-        divF = schemes.getApproxDivFlux(q, gridOp, params["scheme_choice"], operators)
-        # divF_SUPG = schemes.getApproxDivFlux(q, gridOp, 2, operators)
+        t0 = time.time()
+        divF = schemes.getApproxDivFlux(q, gridOp, iMin, iMax, jMin, jMax, dx, dy, schemeChoice, operators, operatorsCoeff)
+        t1 = time.time()
 
-        # divFlux_diff[i] = np.max(abs(divF - divF_SUPG))
+        divFluxTimeTable[i] = t1 - t0
 
 
         # Update
+        t2 = time.time()
         q[iMin:iMax+1, jMin:jMax+1] += - dt * divF[iMin:iMax+1, jMin:jMax+1]
+        t3 = time.time()
 
-        # Conditions périodiques :
-        gridOp.periodize(q)
-        # gridOp.dirichlet(q)
+        updateTimeTable[i] = t3 - t2
+
+
+        # Boundary conditions 
+        if (simulationChoice == 6 or simulationChoice == 7):     # vortex simulation : Dirichlet BC
+            gridOp.dirichlet(q)
+        else :                                                   # else (default) : periodic BC 
+            gridOp.periodize(q) 
 
 
         # observables intermédiaires éventuels
@@ -153,15 +177,17 @@ def getOneApproximateSolution(params):
                 nPlotsDone += 1
                 doPlot = False
                 print("Plot ! temps de simulation :"+str(currentTime))
-                # print(divFlux_diff[i])
 
         elif (i_obs == 3): # Sup norm of the solution (stability purposes)
-            sup_norms[i] = np.max(abs(q[iMin:iMax+1, jMin:jMax+1]), axis=(0, 1))
+            sup_norms[i+1] = np.max(abs(q[iMin:iMax+1, jMin:jMax+1]), axis=(0, 1))
         
         elif (i_obs == 4): # Sup errors (consistency / convergence purposes) 
             q_exact = solutions.getSolution(currentTime, gridOp, params["solution_parameters"])
-            sup_errors[i] = np.max(abs(q[iMin:iMax+1, jMin:jMax+1] - q_exact), axis=(0, 1))
-            
+            sup_errors[i+1] = np.max(abs(q[iMin:iMax+1, jMin:jMax+1] - q_exact), axis=(0, 1))
+
+        elif (i_obs == 6): # Div Fluxes comparisons
+            divF_comparaison = schemes.getApproxDivFlux(q, gridOp, iMin, iMax, jMin, jMax, dx, dy, schemeChoiceComparison, operators, operatorsCoeff)
+            divFlux_diff[i] = np.max(abs(divF - divF_comparaison))
 
         i += 1
     
@@ -170,9 +196,13 @@ def getOneApproximateSolution(params):
     # end time of loop
     endTimeLoop = time.time()
     print("Temps de calcul boucle : ", endTimeLoop - startTimeLoop)
+    print("type de la sortie q : ", q.dtype)
+    print("moyenne pour le calcul de divFLux  : ", np.sum(divFluxTimeTable[divFluxTimeTable > 0]) / i )
+    print("moyenne pour la mise à jour de q   : ", np.sum(updateTimeTable[updateTimeTable > 0]) / i )
+    if (i_obs == 6):
+        print("ecart flux                         : ", np.max(divFlux_diff))
     print(" ")
 
-    # print("ecart flux", np.max(divFlux_diff))
 
     #############################################################################################################
 
@@ -186,10 +216,10 @@ def getOneApproximateSolution(params):
             closeGifWriters(gif_writers)
 
     elif (i_obs == 3): # Sup norm of the solution (stability purposes)
-        makeNormPlots(sup_norms, i_obs, i, Tf, params)
+        makeNormPlots(sup_norms, i, params, gridOp)
     
     elif (i_obs == 4): # Sup errors (consistency / convergence purposes) 
-        makeNormPlots(sup_errors, i_obs, i, Tf, params)
+        makeNormPlots(sup_errors, i, params, gridOp)
     
 
     return q[iMin:iMax+1, jMin:jMax+1]
@@ -220,7 +250,7 @@ def getConvergenceTest(nList, params):
         newParams["grid_parameters"]["mesh_parameters"]["Nx"] = n
         newParams["grid_parameters"]["mesh_parameters"]["Ny"] = n
 
-        print("calcul de solution pour h = "+str(hList[i]))
+        print("calcul de solution pour h = "+str(hList[i])+" || n = "+str(n))
         q = getOneApproximateSolution(newParams)
 
         grid_params = newParams["grid_parameters"]
@@ -270,7 +300,7 @@ def getConvergenceTest(nList, params):
             f.write(str(hList[k])+"     "+str(supErrorsList[k, 2])+"     "+str(L2ErrorsList[k, 2])+"\n")
 
 
-    makeConvTestPlots(hList, supErrorsList, L2ErrorsList, finalTime, params)
+    makeConvTestPlots(hList, supErrorsList, L2ErrorsList, params)
 
 
 

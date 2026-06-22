@@ -39,12 +39,13 @@ def choicePrints(params):
     plotLoc = params["plot_parameters"]["plot_loc"]
 
     # prints
+    print("")
     print("===================================================================")
     print("")
-    print("Schéma testé : "+scheme)
-    print("Choix de simulation : "+simu)
-    print("Observable testée : "+obs)
-    print("Emplacement des résultats : "+plotLoc)
+    print("             Schéma testé : "+scheme                                )
+    print("      Choix de simulation : "+simu                                  )
+    print("        Observable testée : "+obs                                   )
+    print("Emplacement des résultats : "+plotLoc                               )
     print("")
     print("===================================================================")
     print("")
@@ -63,7 +64,7 @@ def getSimuPrint(simulationChoice):
         return "smooth oblique flow"
     elif (simulationChoice == 6):
         return "stationary vortex"
-    elif (simulationChoice == 5):
+    elif (simulationChoice == 7):
         return "stationary vortex + small gaussian perturbation"
     
 
@@ -78,6 +79,8 @@ def getObsPrint(obsChoice):
         return "erreurs avec la solution exacte"
     elif (obsChoice == 5):
         return "test de convergence"
+    elif (obsChoice == 6):
+        return "écart de flux"
     
 
 
@@ -94,8 +97,12 @@ def getObsPrint(obsChoice):
 
 def makeSolutionsPlots(q, time, params, grid, pdf_writers, gif_writers):
     i_obs = params["plot_parameters"]["observables"]
+    simulationChoice = params["solution_parameters"]["simulation_choice"]
     if (i_obs == 1):
-        makeSolutions2DPlots(q, time, params, grid, pdf_writers, gif_writers)
+        if (simulationChoice == 7):
+            perturbedVortex2DPlots(q, time, params, grid, pdf_writers, gif_writers)
+        else :
+            makeSolutions2DPlots(q, time, params, grid, pdf_writers, gif_writers)
     if (i_obs == 2):
         makeSolutions1DPlots(q, time, params, grid, pdf_writers, gif_writers)
 
@@ -109,7 +116,7 @@ def makeSolutions1DPlots(q, time, params, grid, pdf_writers, gif_writers):
 
     i_section = plot_params["section"]
 
-    # On ne prend en compte une éventuelle solution exacte que si on la connait 
+    # On ne prend en compte une éventuelle solution exacte que si on la connait ET que c'est pertinent (pas les vortex stat. par ex)
     do_exact_pdf_plot = False
     do_exact_gif_plot = False
     if (params["solution_parameters"]["simulation_choice"] == 5):
@@ -169,7 +176,7 @@ def makeSolutions1DPlots(q, time, params, grid, pdf_writers, gif_writers):
         ax.plot(domaine_silce, q_slice[:, var], label=approx_label)
         if (do_exact_pdf_plot or do_exact_gif_plot):
             ax.plot(domaine_silce, q_exact_slice[:, var], label=exact_label)
-        ax.set_title(f"{var_symbol} avec le schéma "+schemeName+f" à t={round(time, 1)}")
+        ax.set_title(f"{var_symbol} avec le schéma "+schemeName+f" à t={round(time, 2)}")
         ax.set_xlabel("x")
         ax.set_ylabel(var_symbol)
         ax.legend()
@@ -196,16 +203,15 @@ def makeSolutions2DPlots(q, time, params, grid, pdf_writers, gif_writers):
 
     numLevels = plot_params["levels"]
 
-    # On ne prend en compte une éventuelle solution exacte que si on la connait 
+    # On ne prend en compte une éventuelle solution exacte que si on la connait ET que c'est pertinent (pas les vortex stat. par ex)
     do_exact_pdf_plot = False
     do_exact_gif_plot = False
-    if (params["solution_parameters"]["simulation_choice"] == 5 or params["solution_parameters"]["simulation_choice"] == 6):
+    if (params["solution_parameters"]["simulation_choice"] == 5):
         do_exact_pdf_plot = (plot_params["do_exact_pdf_plot"] == "y")
         do_exact_gif_plot = (plot_params["do_exact_gif_plot"] == "y")
 
-    iMin, iMax, jMin, jMax = grid.valid_grid
-    X = grid.xGrid[iMin:iMax+1, jMin:jMax+1]
-    Y = grid.yGrid[iMin:iMax+1, jMin:jMax+1]
+    X = grid.xValidGrid
+    Y = grid.yValidGrid
 
     plots = [
         (XVEL, "U", "Vitesse U", "RdBu_r"),
@@ -222,7 +228,7 @@ def makeSolutions2DPlots(q, time, params, grid, pdf_writers, gif_writers):
         ax.contour(X, Y, q[:, :, var], levels=numLevels, colors="k", linewidths=0.3)
         # plt.colorbar(cf, ax=ax, label=title, format="%.2f")
         plt.colorbar(cf, ax=ax, label=title)
-        ax.set_title(f"{title} avec le schéma "+schemeName+f" à t={round(time, 1)}")
+        ax.set_title(f"{title} avec le schéma "+schemeName+f" à t={round(time, 2)} \n")
         ax.set_xlabel("x")
         ax.set_ylabel("y")
         ax.set_aspect("equal")
@@ -238,7 +244,7 @@ def makeSolutions2DPlots(q, time, params, grid, pdf_writers, gif_writers):
             gif_writers[filename+"_"+schemeShort].append_data(frame)
         
         plt.close()
-    
+
     
 
     # FIGURES FOR EXACT SOLUTIONS
@@ -256,7 +262,7 @@ def makeSolutions2DPlots(q, time, params, grid, pdf_writers, gif_writers):
             cf = ax.contourf(X, Y, q_exact[:, :, var], levels=numLevels, cmap=cmap)
             ax.contour(X, Y, q_exact[:, :, var], levels=numLevels, colors="k", linewidths=0.3)
             plt.colorbar(cf, ax=ax, label=title, format="%.2f")
-            ax.set_title(f"{title} à t={round(time, 1)}")
+            ax.set_title(f"{title} à t={round(time, 2)} \n ")
             ax.set_xlabel("x")
             ax.set_ylabel("y")
             ax.set_aspect("equal")
@@ -272,6 +278,57 @@ def makeSolutions2DPlots(q, time, params, grid, pdf_writers, gif_writers):
                 gif_writers[filename_exact].append_data(frame)
 
             plt.close()
+
+
+
+
+# 2D Plots of || U - U_eq || (perturbed vortex)
+def perturbedVortex2DPlots(q, time, params, grid, pdf_writers, gif_writers):
+    plot_params = params["plot_parameters"]
+    do_pdf_plot = (plot_params["do_pdf_plot"] == "y")
+    do_gif_plot = (plot_params["do_gif_plot"] == "y")
+
+    numLevels = plot_params["levels"]
+
+    iMin, iMax, jMin, jMax = grid.valid_grid
+    X = grid.xGrid[iMin:iMax+1, jMin:jMax+1]
+    Y = grid.yGrid[iMin:iMax+1, jMin:jMax+1]
+
+    q_eq = solutions.getSolution(time, grid, params["solution_parameters"])
+    grid.dirichlet(q_eq)
+    
+    ecart = np.linalg.norm(q[:, :, :PRES] - q_eq[:, :, :PRES], ord=2, axis=2)
+    
+    # ecart_autre = np.sqrt(  (q[:, :, XVEL] - q_eq[:, :, XVEL])**2 \
+    #                       + (q[:, :, YVEL] - q_eq[:, :, YVEL])**2 )
+    # print(np.max(abs(ecart - ecart_autre)))
+
+    schemeShort, schemeName = getSchemeTitles(params)
+    filename = "diff_to_eq"
+
+    # FIGURES 
+    fig, ax = plt.subplots()
+    cf = ax.contourf(X, Y, ecart, levels=numLevels, cmap="viridis")
+    ax.contour(X, Y, ecart, levels=numLevels, colors="k", linewidths=0.3)
+    # plt.colorbar(cf, ax=ax, label=title, format="%.2f")
+    plt.colorbar(cf, ax=ax, label=f"$||\\mathbf{{U}} - \\mathbf{{U_eq}}||$")
+    ax.set_title(f"$||\\mathbf{{U}} - \\mathbf{{U_{{eq}}}}||$ avec le schéma "+schemeName+f" à t={round(time, 2)} \n")
+    ax.set_xlabel("x")
+    ax.set_ylabel("y")
+    ax.set_aspect("equal")
+    plt.tight_layout()
+
+    if (do_pdf_plot) :
+        pdf_writers[filename+"_"+schemeShort].savefig(fig)
+    
+    if (do_gif_plot) :
+        # On écrit directement dans le gif
+        fig.canvas.draw()
+        frame = np.array(fig.canvas.renderer.buffer_rgba())
+        gif_writers[filename+"_"+schemeShort].append_data(frame)
+    
+    plt.close()
+
 
 
 
@@ -308,10 +365,16 @@ def openPdfWriters(params):
     plot_loc = params["plot_parameters"]["plot_loc"]
     schemeShort = getSchemeTitles(params)[0]
     plots = ["U_"+schemeShort, "V_"+schemeShort, "P_"+schemeShort, "U_exact", "V_exact", "P_exact"]
-    return {
-        filename: PdfPages(f"{plot_loc}{filename}.pdf")
-        for filename in plots
-    }
+    simulationChoice = params["solution_parameters"]["simulation_choice"]
+
+    if simulationChoice == 7 :
+        filename = "diff_to_eq"
+        return {filename+"_"+schemeShort : PdfPages(f"{plot_loc}{filename+"_"+schemeShort}.pdf")}
+    else :
+        return {
+            filename: PdfPages(f"{plot_loc}{filename}.pdf")
+            for filename in plots
+        }
 
 
 def closePdfWriters(pdf_writers):
@@ -329,9 +392,12 @@ def closePdfWriters(pdf_writers):
 
 
 
-def makeNormPlots(norms, i_obs, nb_iter, final_time, params):
+def makeNormPlots(norms, nb_iter, params, grid):
     plot_loc = params["plot_parameters"]["plot_loc"]
     schemeShort, schemeName = getSchemeTitles(params)
+    i_obs = params["plot_parameters"]["observables"]
+    finalTime, CFL = params["time_parameters"].values()
+    h = max( grid.steps )
 
     if (i_obs == 3):
         obs_title = "Norme sup"
@@ -342,21 +408,31 @@ def makeNormPlots(norms, i_obs, nb_iter, final_time, params):
 
     plt.figure(3)
     var = [(XVEL, "u"), (YVEL, "v"), (PRES, "p")]
-    with PdfPages(plot_loc + obs_fileName + schemeShort + ".pdf") as pdf:
+    with PdfPages(plot_loc + obs_fileName + schemeShort + "_" + str(round(h, 5)) + ".pdf") as pdf:
         for k, varName in var:
+            if (i_obs == 3):
+                obs_label = f"$|| {varName}_{{n}} ||$"
+            if (i_obs == 4):
+                obs_label = f"$|| {varName}_{{n}} - {varName}_{{\\text{{ex}}, n}} ||$"
+
+            # fig, ax = plt.subplots(figsize=(5, 5))
             fig, ax = plt.subplots()
             ax.plot(np.arange(1, nb_iter+1), norms[:nb_iter, k])
-            ax.set_title(obs_title+" de " + varName + " avec le schéma " + schemeName + " " \
-                            "\n en fonction du nombre d'itérations pour Tf = " + str(final_time))
+            ax.set_title(obs_title + " de " + varName + " avec le schéma " + schemeName + " en fonction de " \
+                            "\n l'itération; pour Tf = " + str(finalTime) + " CFL = " + str(CFL) + " et h = " + str(round(h, 5)))
+            ax.set_xlabel("n")
             ax.set_yscale("log")
+            ax.set_ylabel(obs_label)
+            fig.tight_layout()  # Ajuste automatiquement les marges
             pdf.savefig(fig)
             plt.close(fig)
 
 
 
-def makeConvTestPlots(hList, supErrorsList, L2ErrorsList, final_time, params):
+def makeConvTestPlots(hList, supErrorsList, L2ErrorsList, params):
     plot_loc = params["plot_parameters"]["plot_loc"]
     schemeShort, schemeName = getSchemeTitles(params)
+    finalTime, CFL = params["time_parameters"].values()
 
     plt.figure(3)
     var = [(XVEL, "u"), (YVEL, "v"), (PRES, "p")]
@@ -369,13 +445,15 @@ def makeConvTestPlots(hList, supErrorsList, L2ErrorsList, final_time, params):
             # Plots
             fig, ax = plt.subplots()
             ax.set_title("Erreurs sur " + varName + " avec le schéma " + schemeName + " \n " \
-                            "en fonction du nombre nombre de points pour Tf = " + str(final_time))
+                            "en fonction du pas d'espace pour Tf = " + str(finalTime) + " et CFL = " + str(CFL))
             ax.plot(hList, supErrorsList[:, k], label="Erreur $L^\infty$", color="blue")
             ax.plot(hList, coeffSup * hList, label="pente 1", color="blue", linestyle="--", alpha=0.5)
             ax.plot(hList, L2ErrorsList[:, k], label="Erreur $L^2$", color="orange")
             ax.plot(hList, coeffL2 * hList, label="pente 1", color="orange",  linestyle="--", alpha=0.5)
             ax.set_xscale("log")
+            ax.set_xlabel("h")
             ax.set_yscale("log")
+            ax.set_ylabel(f"$|| {varName} - {varName}_{{\\text{{ex}}}} ||$")
             ax.legend()
             pdf.savefig(fig)
             plt.close(fig)
