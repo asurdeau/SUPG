@@ -62,6 +62,7 @@ def getOneApproximateSolution(params):
     ### initialise time parameters
     i = 0
     currentTime = 0.0
+    taux_progression = 0.1
     dt_apriori = min(dx, dy) * CFL
 
     ### Initialise data
@@ -145,6 +146,10 @@ def getOneApproximateSolution(params):
                 currentTime = Tf
             else :
                 currentTime += dt_apriori
+
+            if ( abs(currentTime - Tf * taux_progression) < 0.5 * dt_apriori ):
+                print("progression du calcul : " + str( 100 * round(taux_progression, 3) )+"%")
+                taux_progression += 0.1
 
         # Div . Fluxes computations
         t0 = time.time()

@@ -6,24 +6,24 @@ grid_parameters :
     yR : 1.
 
   mesh_parameters : # Nx and Ny are the NUMBER OF POINTS, NOT CELLS
-    Nx : 81 
-    Ny : 81
+    Nx : 101 
+    Ny : 101
     nGhost : 1
 
 
 time_parameters : 
-  end_time : 0.35
-  CFL_number : 0.1
+  end_time : 1.
+  CFL_number : 0.5
 
 
-nList : [101, 201, 401, 801]
+nList : [101, 201, 401, 801, 1601, 3201]
 
 
 scheme_choice : 4 # 1 : CLASSICAL FV UPWIND || 2 : LUMPED SUPG || 3 : "À la carte" lumped SUPG  || 4 : "optim" "À la carte" lumped SUPG 
 
 
 solution_parameters :
-  simulation_choice : 7                                 # 1 : constant || 2 : 0 + random noise || 3 : constant + small gaussian || 4 : checkerboard || 5 : analytical periodic || 6 : stationary vortex || 7 : stationary vortex + pressure perturbation
+  simulation_choice : 6                                 # 1 : constant || 2 : 0 + random noise || 3 : constant + small gaussian || 4 : checkerboard || 5 : analytical periodic || 6 : stationary vortex || 7 : stationary vortex + pressure perturbation
   constant : [1., 2., 3.]
   noise_range : [12, 14]                                # n1, n2 for the range written as  [-10^(-n1), -10^(-n2)] u [10^(-n2), 10^(-n1)]
   gaussian_noise :                                      # perturbation for the pressure
@@ -42,9 +42,9 @@ solution_parameters :
  
  
 plot_parameters :
-  observables : 1          # 1 : 2d Plots of solutions || 2: 1d Plots of solutions || 3: norms of the approx sol || 4: Errors with exact || 5: CV tests || 6: divFlux comparisons between two schemes
+  observables : 5          # 1 : 2d Plots of solutions || 2: 1d Plots of solutions || 3: norms of the approx sol || 4: Errors with exact || 5: CV tests || 6: divFlux comparisons between two schemes
   # Common parameters
-  plot_loc : "Plots/Tests/perturbed_vortex/"
+  plot_loc : "Plots/Tests/modified_SUPG/vortex/Cinf_vortex/"
   # 2d and 1d plots parameters
   nb_plots : 2             # Counting the initial one ! If < 1 no gif !
   do_pdf_plot : y          # y -> yes || anything else -> no (no "" but still counted as a string)
@@ -56,7 +56,7 @@ plot_parameters :
   levels : 10               # number of levels for contour 2d plots
   # 1d parameters
   section : 3               # 1 : horizontal middle || 2 : vertical middle || 3 : diagonal
-  comparison_scheme : 2     # 1 : CLASSICAL FV UPWIND || 2 : LUMPED SUPG || 3 : "À la carte" lumped SUPG  || 4 : "optim" "À la carte" lumped SUPG
+  comparison_scheme : 3     # 1 : CLASSICAL FV UPWIND || 2 : LUMPED SUPG || 3 : "À la carte" lumped SUPG  || 4 : "optim" "À la carte" lumped SUPG
   
   
 

@@ -37,6 +37,7 @@ def choicePrints(params):
     simu = getSimuPrint(params["solution_parameters"]["simulation_choice"])
     obs = getObsPrint(params["plot_parameters"]["observables"])
     plotLoc = params["plot_parameters"]["plot_loc"]
+    CFL = params["time_parameters"]["CFL_number"]
 
     # prints
     print("")
@@ -44,6 +45,7 @@ def choicePrints(params):
     print("")
     print("             Schéma testé : "+scheme                                )
     print("      Choix de simulation : "+simu                                  )
+    print("                      CFL : "+str(CFL)                              )
     print("        Observable testée : "+obs                                   )
     print("Emplacement des résultats : "+plotLoc                               )
     print("")
@@ -408,7 +410,7 @@ def makeNormPlots(norms, nb_iter, params, grid):
 
     plt.figure(3)
     var = [(XVEL, "u"), (YVEL, "v"), (PRES, "p")]
-    with PdfPages(plot_loc + obs_fileName + schemeShort + "_" + str(round(h, 5)) + ".pdf") as pdf:
+    with PdfPages(plot_loc + obs_fileName + schemeShort + "_h" + str(round(h, 5)) + "_CFL" + str(CFL) + ".pdf") as pdf:
         for k, varName in var:
             if (i_obs == 3):
                 obs_label = f"$|| {varName}_{{n}} ||$"
@@ -418,8 +420,8 @@ def makeNormPlots(norms, nb_iter, params, grid):
             # fig, ax = plt.subplots(figsize=(5, 5))
             fig, ax = plt.subplots()
             ax.plot(np.arange(1, nb_iter+1), norms[:nb_iter, k])
-            ax.set_title(obs_title + " de " + varName + " avec le schéma " + schemeName + " en fonction de " \
-                            "\n l'itération; pour Tf = " + str(finalTime) + " CFL = " + str(CFL) + " et h = " + str(round(h, 5)))
+            ax.set_title(obs_title + " de " + varName + " avec le schéma " + schemeName + " en fonction " \
+                            "\n de l'itération; pour Tf = " + str(finalTime) + ", CFL = " + str(CFL) + " et h = " + str(round(h, 5)))
             ax.set_xlabel("n")
             ax.set_yscale("log")
             ax.set_ylabel(obs_label)
