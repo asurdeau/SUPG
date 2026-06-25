@@ -32,33 +32,30 @@ def getSchemeKeys(params):
 
 
 def getSimulKeys(params):
-    systemChoice = params["system_choice"]
+    simulationChoice = params["solution_parameters"]["simulation_choice"]
 
-    if systemChoice == 1 : # 2D ACOUSTIC SIMULATIONS
-        simulationChoice = params["solution_parameters"]["simulation_choice"]
-
-        if (simulationChoice == 1):
-            simul_name =  "etat constant"
-            simul_short = "cst_"
-        elif (simulationChoice == 2):
-            simul_name =  "random noise"
-            simul_short = "noise_"
-        elif (simulationChoice == 3):
-            simul_name =  "cst + small gaussian"
-            simul_short = "cst+pert_"
-        elif (simulationChoice == 4):
-            simul_name =  "checkerboard"
-            simul_short = "check_"
-        elif (simulationChoice == 5):
-            degree = params["solution_parameters"]["analytical_periodic"]["theta"]
-            simul_name =  "smooth oblique flow ("+str(round(degree, 3))+"°)"
-            simul_short = "smooth_flow_"+str(round(degree, 3))+"_"
-        elif (simulationChoice == 6):
-            simul_name =  "stationary vortex"
-            simul_short = "vortex_"
-        elif (simulationChoice == 7):
-            simul_name =  "stationary vortex + small gaussian perturbation"
-            simul_short = "vortex+pert_"
+    if (simulationChoice == 1):
+        simul_name =  "etat constant"
+        simul_short = "cst_"
+    elif (simulationChoice == 2):
+        simul_name =  "random noise"
+        simul_short = "noise_"
+    elif (simulationChoice == 3):
+        simul_name =  "cst + small gaussian"
+        simul_short = "cst+pert_"
+    elif (simulationChoice == 4):
+        simul_name =  "checkerboard"
+        simul_short = "check_"
+    elif (simulationChoice == 5):
+        degree = params["solution_parameters"]["analytical_periodic"]["theta"]
+        simul_name =  "smooth flow ("+str(round(degree, 3))+"°)"
+        simul_short = "smooth_flow_"+str(round(degree, 3))+"_"
+    elif (simulationChoice == 6):
+        simul_name =  "stationary vortex"
+        simul_short = "vortex_"
+    elif (simulationChoice == 7):
+        simul_name =  "stationary vortex + small gaussian perturbation"
+        simul_short = "vortex+pert_"
     
     return simul_name, simul_short
     
@@ -78,6 +75,9 @@ def getObsKeys(obsChoice):
         obs_short = "err_sup_"
     elif (obsChoice == 5):
         obs_name = "test de convergence"
+        obs_short = ""
+    elif (obsChoice == 6):
+        obs_name = "comparaisons div FLux"
         obs_short = ""
     
     return obs_name, obs_short
@@ -331,7 +331,7 @@ def makeSolutions2DPlots(q, time, params, grid, pdf_writers, gif_writers):
 # 2D Plots of || U - U_eq || (perturbed vortex)
 def perturbedVortex2DPlots(q, time, params, grid, pdf_writers, gif_writers):
     plot_params = params["plot_parameters"]
-    scheme_short, scheme_name = getSchemeKeys(params)
+    scheme_name, scheme_short = getSchemeKeys(params)
     simul_name, simul_short = getSimulKeys(params)
     do_pdf_plot = (plot_params["do_pdf_plot"] == "y")
     do_gif_plot = (plot_params["do_gif_plot"] == "y")
@@ -462,7 +462,7 @@ def closePdfWriters(pdf_writers):
 
 def makeNormPlots(norms, nb_iter, params, grid):
     plot_loc = params["plot_parameters"]["plot_loc"]
-    scheme_short, scheme_name = getSchemeKeys(params)
+    scheme_name, scheme_short = getSchemeKeys(params)
     simul_name, simul_short = getSimulKeys(params)
     i_obs = params["observables"]
     finalTime, CFL = params["time_parameters"].values()
@@ -482,8 +482,8 @@ def makeNormPlots(norms, nb_iter, params, grid):
             # fig, ax = plt.subplots(figsize=(5, 5))
             fig, ax = plt.subplots()
             ax.plot(np.arange(1, nb_iter+1), norms[:nb_iter, k])
-            ax.set_title(f"{simul_name} avec {scheme_name} : {obs_name} de {varName} en fonction " \
-                            f"\n de l'itération; pour Tf = {finalTime}, CFL = {CFL} et h = {round(h, 5)}")
+            ax.set_title(f"{simul_name} avec {scheme_name} : {obs_name} de {varName} " \
+                            f"\n en fct de l'itération avec Tf = {finalTime}, CFL = {CFL} et h = {round(h, 5)}")
             ax.set_xlabel("n")
             ax.set_yscale("log")
             ax.set_ylabel(obs_label)
@@ -495,13 +495,13 @@ def makeNormPlots(norms, nb_iter, params, grid):
 
 def makeConvTestPlots(hList, supErrorsList, L2ErrorsList, params):
     plot_loc = params["plot_parameters"]["plot_loc"]
-    scheme_short, scheme_name = getSchemeKeys(params)
+    scheme_name, scheme_short = getSchemeKeys(params)
     simul_name, simul_short = getSimulKeys(params)
     finalTime, CFL = params["time_parameters"].values()
 
     plt.figure(3)
     var = [(XVEL, "u"), (YVEL, "v"), (PRES, "p")]
-    with PdfPages(plot_loc + simul_short + scheme_short + "test_conv_" + ".pdf") as pdf:
+    with PdfPages(f"{plot_loc}{simul_short}{scheme_short}test_conv_{CFL}.pdf") as pdf:
         for k, varName in var:
             # Regression de pente 1 pour les log des deux jeux de données :
             coeffSup = np.exp(np.sum(np.log(supErrorsList[:, k]) - np.log(hList)) / len(hList))
@@ -509,8 +509,8 @@ def makeConvTestPlots(hList, supErrorsList, L2ErrorsList, params):
 
             # Plots
             fig, ax = plt.subplots()
-            ax.set_title(f"{simul_name} avec {scheme_name} : Erreurs sur {varName} en fonction " \
-                            f"\n de l'itération; pour Tf = {finalTime}, CFL = {CFL}")
+            ax.set_title(f"{simul_name} avec {scheme_name} : Erreurs sur {varName} " \
+                            f"\n en fct du pas d'espace avec Tf = {finalTime}, CFL = {CFL}")
             ax.plot(hList, supErrorsList[:, k], label="Erreur $L^{{\\infty}}$", color="blue")
             ax.plot(hList, coeffSup * hList, label="pente 1", color="blue", linestyle="--", alpha=0.5)
             ax.plot(hList, L2ErrorsList[:, k], label="Erreur $L^2$", color="orange")

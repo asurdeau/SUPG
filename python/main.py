@@ -40,7 +40,7 @@ if __name__ == "__main__":
     startTimeWhole = time.time()
 
 
-    if (params["plot_parameters"]["observables"] == 5) :
+    if (params["observables"] == 5) :
         getConvergenceTest(params["nList"], params)
     else :
         getOneApproximateSolution(params)

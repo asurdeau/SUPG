@@ -17,7 +17,7 @@ import grid_mod
 import schemes
 import plots
 from plots import makeSolutionsPlots, openGifWriters, closeGifWriters, openPdfWriters, closePdfWriters, makeNormPlots, makeConvTestPlots
-from plots import getSchemeTitles
+from plots import getSchemeKeys
 import solutions
 
 
@@ -122,10 +122,8 @@ def getOneApproximateSolution(params):
     # starting time of the loop
     startTimeLoop = time.time()
     while (abs(currentTime - Tf) > 1.e-10) :
-        # currentTime += dt     # : accumule les erreurs d'arrondis !!!!
-        # currentTime = i * dt  # : le meilleur choix quand le pas est constant 
-        # historique_dt.append(dt)
-        # currentTime = math.fsum(historique_dt) # recalcule la somme à chaque fois mais plus précis
+        
+        # AJUSTEMENT EVENTUEL DU PAS DE TEMPS ET MAJ DU TEMPS ACTUEL
         dt = dt_apriori
         if (i_obs == 1 or i_obs == 2):
             if (currentTime + dt_apriori > Tf) :
@@ -150,30 +148,39 @@ def getOneApproximateSolution(params):
                 print("progression du calcul : " + str( 100 * round(taux_progression, 3) )+"%")
                 taux_progression += 0.1
 
-        # Div . Fluxes computations
+
+
+        # CALCUL DE DIV.FLUXES
         t0 = time.time()
         divF = schemes.getApproxDivFlux(q, gridOp, iMin, iMax, jMin, jMax, dx, dy, schemeChoice, operators, operatorsCoeff)
         t1 = time.time()
 
         divFluxTimeTable[i] = t1 - t0
 
+        ### Eventuelle comparaisons avec un autre schéma : ATTENTION ON NE COMPARE QUE LES DIV.FLUX, 
+        ### PAS LES SCHÉMAS
+        if (i_obs == 6): 
+            divF_comparaison = schemes.getApproxDivFlux(q, gridOp, iMin, iMax, jMin, jMax, dx, dy, schemeChoiceComparison, operators, operatorsCoeff)
+            divFlux_diff[i] = np.max(abs(divF - divF_comparaison))
 
-        # Update
+
+
+        # MISES À JOUR
         t2 = time.time()
         q[iMin:iMax+1, jMin:jMax+1] += - dt * divF[iMin:iMax+1, jMin:jMax+1]
         t3 = time.time()
 
         updateTimeTable[i] = t3 - t2
 
-
-        # Boundary conditions 
+        ### Conditions de bords
         if (simulationChoice == 6 or simulationChoice == 7):     # vortex simulation : Dirichlet BC
             gridOp.dirichlet(q)
         else :                                                   # else (default) : periodic BC 
             gridOp.periodize(q) 
 
 
-        # observables intermédiaires éventuels
+
+        # OBSERVABLES INTERMEDIAIRES EVENTUELS
         if (i_obs == 1 or i_obs == 2):
             if (doPlot and (do_pdf_plot or do_gif_plot)) :
                 q_valid = q[iMin:iMax+1, jMin:jMax+1] # WE ONLY EXTRACT q OVER THE VALID MESH (+ WE ADD THE BORDERS)
@@ -189,15 +196,17 @@ def getOneApproximateSolution(params):
             q_exact = solutions.getSolution(currentTime, gridOp, params["solution_parameters"])
             sup_errors[i] = np.max(abs(q[iMin:iMax+1, jMin:jMax+1] - q_exact), axis=(0, 1))
 
-        elif (i_obs == 6): # Div Fluxes comparisons
-            divF_comparaison = schemes.getApproxDivFlux(q, gridOp, iMin, iMax, jMin, jMax, dx, dy, schemeChoiceComparison, operators, operatorsCoeff)
-            divFlux_diff[i] = np.max(abs(divF - divF_comparaison))
-
         i += 1
-    
 
-    
-    # end time of loop
+
+
+
+    #############################################################################################################
+
+
+
+    # FIN DE LA BOUCLE EN TEMPS 
+    ### Quelques prints
     endTimeLoop = time.time()
     print("Temps de calcul boucle : ", endTimeLoop - startTimeLoop)
     print("type de la sortie q : ", q.dtype)
@@ -207,11 +216,7 @@ def getOneApproximateSolution(params):
         print("ecart flux                         : ", np.max(divFlux_diff))
     print(" ")
 
-
-    #############################################################################################################
-
-
-    # FINAL TIME REACHED : last observation
+    ### Dernière observable éventuelle 
     if (i_obs == 1 or i_obs == 2):
         if (nPlots >= 1 and (do_pdf_plot or do_gif_plot)) :
             q_valid = q[iMin:iMax+1, jMin:jMax+1] # WE ONLY EXTRACT q OVER THE VALID MESH (+ WE ADD THE BORDERS)
@@ -226,6 +231,7 @@ def getOneApproximateSolution(params):
         makeNormPlots(sup_errors, i-1, params, gridOp)
     
 
+    # FIN DE LA ROUTINE : ON RENVOIE LA VALEUR FINALE
     return q[iMin:iMax+1, jMin:jMax+1]
 
 
