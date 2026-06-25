@@ -85,7 +85,7 @@ def getOneApproximateSolution(params):
     divFluxTimeTable = - np.ones(nb_iter)
     updateTimeTable = - np.ones(nb_iter)
 
-    i_obs = params["plot_parameters"]["observables"]
+    i_obs = params["observables"]
     if (i_obs == 1 or i_obs == 2):
         pdf_writers = openPdfWriters(params)
         gif_writers = openGifWriters(params)
@@ -101,7 +101,6 @@ def getOneApproximateSolution(params):
     
     elif (i_obs == 4): # Sup errors (consistency / convergence purposes) 
         sup_errors = (-1.) * np.ones((nb_iter, 3))
-        sup_errors[0] = 0.
 
     elif (i_obs == 6): # divFlux differences
         schemeChoiceComparison = params["plot_parameters"]["comparison_scheme"]
@@ -188,7 +187,7 @@ def getOneApproximateSolution(params):
         
         elif (i_obs == 4): # Sup errors (consistency / convergence purposes) 
             q_exact = solutions.getSolution(currentTime, gridOp, params["solution_parameters"])
-            sup_errors[i+1] = np.max(abs(q[iMin:iMax+1, jMin:jMax+1] - q_exact), axis=(0, 1))
+            sup_errors[i] = np.max(abs(q[iMin:iMax+1, jMin:jMax+1] - q_exact), axis=(0, 1))
 
         elif (i_obs == 6): # Div Fluxes comparisons
             divF_comparaison = schemes.getApproxDivFlux(q, gridOp, iMin, iMax, jMin, jMax, dx, dy, schemeChoiceComparison, operators, operatorsCoeff)
@@ -224,7 +223,7 @@ def getOneApproximateSolution(params):
         makeNormPlots(sup_norms, i, params, gridOp)
     
     elif (i_obs == 4): # Sup errors (consistency / convergence purposes) 
-        makeNormPlots(sup_errors, i, params, gridOp)
+        makeNormPlots(sup_errors, i-1, params, gridOp)
     
 
     return q[iMin:iMax+1, jMin:jMax+1]
@@ -262,9 +261,9 @@ def getConvergenceTest(nList, params):
         gridOp = grid_mod.gridOperator(grid_params)
         q_exact = solutions.getSolution(finalTime, gridOp, params["solution_parameters"])
         
-        supErrorsList[i] = np.max(abs(q - q_exact))
+        supErrorsList[i] = np.max(abs(q - q_exact), axis=(0, 1))
         dx, dy = gridOp.steps
-        L2ErrorsList[i] = dx * dy * np.sum( (q - q_exact)**2 )
+        L2ErrorsList[i] = dx * dy * np.sqrt(np.sum( (q - q_exact)**2, axis=(0, 1)))
 
 
         # Plotting successive figures
@@ -300,9 +299,11 @@ def getConvergenceTest(nList, params):
         i += 1
 
     # Writing content to a file
-    with open('results.txt', 'w') as f:
-        for k in range(len(nList)):
-            f.write(str(hList[k])+"     "+str(supErrorsList[k, 2])+"     "+str(L2ErrorsList[k, 2])+"\n")
+    outputs = [(XVEL, "U"), (YVEL, "V"), (PRES, "P")]
+    for var, name in outputs :
+        with open("results_"+name+".txt", 'w') as f:
+            for k in range(len(nList)):
+                f.write(str(hList[k])+"     "+str(supErrorsList[k, var])+"     "+str(L2ErrorsList[k, var])+"\n")
 
 
     makeConvTestPlots(hList, supErrorsList, L2ErrorsList, params)
