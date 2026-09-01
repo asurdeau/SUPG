@@ -11,9 +11,9 @@ import config
 from config import XVEL, YVEL, PRES
 import grid_mod
 import plots
-import schemes
+import spatial_operators
 import solutions
-from Quick_Q1_SUPG import getOneApproximateSolution, getConvergenceTest
+from time_evolutions import getOneApproximateSolution, getConvergenceTest
 
 
 
@@ -32,6 +32,7 @@ from Quick_Q1_SUPG import getOneApproximateSolution, getConvergenceTest
 if __name__ == "__main__":
     # DATA extraction from yaml file
     params = yaml.load(open("parameters.yaml"),Loader=yaml.SafeLoader)
+    simulationChoice = params["simulation_choice"]
 
     # Affichage du choix de la simulation :
     plots.choicePrints(params)
@@ -39,11 +40,21 @@ if __name__ == "__main__":
     # Starting time of computations
     startTimeWhole = time.time()
 
+    i_obs_list = np.array(params["observables_choices"])
+    if (any(i_obs_list == 8)) :
+        getConvergenceTest(params)
 
-    if (params["observables"] == 5) :
-        getConvergenceTest(params["nList"], params)
+    elif (any(i_obs_list == 9)):
+        print()
+        # makeSeriesOfTests(params)
+        
     else :
-        getOneApproximateSolution(params)
+        if simulationChoice == 5 : # For vortex + pert : long time simu + add of perturbation
+            print("perturbed simulation")
+            # makePerturbedPreparedSimulation(params)
+        
+        else :
+            getOneApproximateSolution(params)
 
 
     endTimeWhole = time.time()
