@@ -132,85 +132,95 @@ def choicePrints(params):
 
 
 
-def makeSolutionsPlots(q, q_prep, time, i_obs, params, grid, pdf_writers, gif_writers):
+def getVisualisationGrid(params):
+    order = params["order"]
+    xL, xR, yL, yR = params["grid_parameters"]["domain_parameters"].values()
+    Nx, Ny, nGhost = params["grid_parameters"]["mesh_parameters"].values()
+    nVis = params["number_visualisation_points"]
+
+    # Grille de visualisation
+    if order == 0:
+        nVis = 1
+
+    xCoord = np.linspace(xL, xR, Nx * nVis + 1)
+    yCoord = np.linspace(yL, yR, Ny * nVis + 1)
+    X, Y = np.meshgrid(xCoord, yCoord, indexing="ij")
+
+    return X, Y
+
+
+
+
+
+def makeSolutionsPlots(X, Y, q, q_prep, time, i_obs, params, h, pdf_writers, gif_writers):
     simulationChoice = params["simulation_choice"]
 
+    # Plot ou non de la solution exacte
+    do_exact_pdf_plot = False
+    do_exact_gif_plot = False
+    if (simulationChoice == 2 or (simulationChoice == 3 and time < 1.e-14)):
+        do_exact_pdf_plot = (params["plot_parameters"]["do_exact_pdf_plot"] == "y")
+        do_exact_gif_plot = (params["plot_parameters"]["do_exact_gif_plot"] == "y")
+
+    q_exact = []
+    if do_exact_pdf_plot or do_exact_gif_plot or i_obs == 3 :
+        q_exact = solutions.getSolution(time, X, Y, simulationChoice, params["solution_parameters"])
+
+    do_exact_plot = len(q_exact) > 0
+
     if (i_obs == 1):
-        makeSolutions1DPlots(q, time, params, grid, pdf_writers["1D"], gif_writers["1D"])
+        makeSolutions1DPlots(X, Y, q, do_exact_plot, q_exact, time, params, h, pdf_writers["1D"], gif_writers["1D"])
 
     if (i_obs == 2):
         if (simulationChoice == 4 or simulationChoice == 5):
-            perturbedSolution2DPlots(q, q_prep, time, params, grid, pdf_writers["2D"], gif_writers["2D"])
+            perturbedSolution2DPlots(X, Y, q, q_prep, time, params, h, pdf_writers["2D"], gif_writers["2D"])
         else :
-            makeSolutions2DPlots(q, time, params, grid, pdf_writers["2D"], gif_writers["2D"])
+            makeSolutions2DPlots(X, Y, q, do_exact_plot, q_exact, time, params, h, pdf_writers["2D"], gif_writers["2D"])
 
     if (i_obs == 3):
-        makeSolutions2DDiffNormPlots(q, time, params, grid, pdf_writers["2D_diff"], gif_writers["2D_diff"])
+        makeSolutions2DDiffNormPlots(X, Y, q, q_exact, time, params, h, pdf_writers["2D_diff"], gif_writers["2D_diff"])
 
 
 
 # 1D Solutions
-def makeSolutions1DPlots(q, time, params, grid, pdf_writers, gif_writers):
-    plot_params = params["plot_parameters"]
-    simulChoice = params["solution_parameters"]["simulation_choice"]
+def makeSolutions1DPlots(X, Y, q, do_exact_plot, q_exact, time, params, h, pdf_writers, gif_writers):
     scheme_name, scheme_short = getSchemeKeys(params)
     simul_name, simul_short = getSimulKeys(params)
-    do_pdf_plot = (plot_params["do_pdf_plot"] == "y")
-    do_gif_plot = (plot_params["do_gif_plot"] == "y")
-    h = max( grid.steps )
+    do_pdf_plot = (params["plot_parameters"]["do_pdf_plot"] == "y")
+    do_gif_plot = (params["plot_parameters"]["do_gif_plot"] == "y")
     CFL = params["time_parameters"]["CFL_number"]
 
-    i_section = plot_params["section"]
+    i_section = params["plot_parameters"]["section"]
 
-    # On ne prend en compte une éventuelle solution exacte que si on la connait 
-    # ET que c'est pertinent (pas les vortex stat. après t = 0 par ex)
-    do_exact_pdf_plot = False
-    do_exact_gif_plot = False
-    if (simulChoice == 5 or (simulChoice == 6 and time < 1.e-14)):
-        do_exact_pdf_plot = (plot_params["do_exact_pdf_plot"] == "y")
-        do_exact_gif_plot = (plot_params["do_exact_gif_plot"] == "y")
-
-    iMin, iMax, jMin, jMax = grid.valid_grid
-    X = grid.xGrid[iMin:iMax+1, jMin:jMax+1]
-    Y = grid.yGrid[iMin:iMax+1, jMin:jMax+1]
-
-    Nx = iMax - iMin + 1
-    Ny = jMax - jMin + 1
+    Nx, Ny, nGhost = params["grid_parameters"]["mesh_parameters"].values()
+    i_slice, j_slice = params["plot_parameters"]["slice_indices"]
 
     if (i_section == 1):
-        jMid = int( 0.5 * Ny )
-        domaine_silce = X[:, jMid]
-        q_slice = q[:, jMid]
+        domaine_silce = X[:, j_slice]
+        q_slice = q[:, j_slice]
         slice_name = "coupe horizontale"
 
-        if (do_exact_pdf_plot or do_exact_gif_plot):
-            q_exact = solutions.getSolution(time, grid, params["solution_parameters"])
-            q_exact_slice = q_exact[:, jMid]
+        if do_exact_plot :
+            q_exact_slice = q_exact[:, j_slice]
     
     elif (i_section == 2):
-        iMid = int( 0.5 * Nx )
-        domaine_silce = Y[iMid]
-        q_slice = q[iMid]
+        domaine_silce = Y[i_slice, :]
+        q_slice = q[i_slice, :]
         slice_name = "coupe verticale"
 
-        if (do_exact_pdf_plot or do_exact_gif_plot):
-            q_exact = solutions.getSolution(time, grid, params["solution_parameters"])
-            q_exact_slice = q_exact[iMid]
+        if do_exact_plot :
+            q_exact_slice = q_exact[i_slice, :]
 
     elif (i_section == 3):
         if (Nx != Ny):
             print("section diagonale mais malliage non adapté")
         else :
             slice_name = "coupe oblique"
-
-            iMid = int( 0.5 * Nx )
-            jMid = int( 0.5 * Ny )
             domaine_silce = np.sqrt( X[:, 0]**2 + Y[0, :]**2 )
 
             q_slice = np.diagonal(q, axis1=0, axis2=1).T
             
-            if (do_exact_pdf_plot or do_exact_gif_plot):
-                q_exact = solutions.getSolution(time, grid, params["solution_parameters"])
+            if do_exact_plot :
                 q_exact_slice = np.diagonal(q_exact, axis1=0, axis2=1).T
                 
     plots = [
@@ -228,7 +238,7 @@ def makeSolutions1DPlots(q, time, params, grid, pdf_writers, gif_writers):
     for var, filename, approx_label, exact_label, var_symbol in plots:
         fig, ax = plt.subplots()
         ax.plot(domaine_silce, q_slice[:, var], label=approx_label)
-        if (do_exact_pdf_plot or do_exact_gif_plot):
+        if do_exact_plot :
             ax.plot(domaine_silce, q_exact_slice[:, var], label=exact_label)
         ax.set_title(f"{simul_name} avec {scheme_name} : {slice_name} de {var_symbol} à t={round(time, 1)} \n et h = {round(h, 5)}, CFL = {CFL}")
         ax.set_xlabel("x")
@@ -250,32 +260,15 @@ def makeSolutions1DPlots(q, time, params, grid, pdf_writers, gif_writers):
 
 
 # 2D Plots
-def makeSolutions2DPlots(q, time, params, grid, pdf_writers, gif_writers):
+def makeSolutions2DPlots(X, Y, q, do_exact_plot, q_exact, time, params, h, pdf_writers, gif_writers):
     plot_params = params["plot_parameters"]
-    simulationChoice = params["simulation_choice"]
     scheme_name, scheme_short = getSchemeKeys(params)
     simul_name, simul_short = getSimulKeys(params)
     do_pdf_plot = (plot_params["do_pdf_plot"] == "y")
     do_gif_plot = (plot_params["do_gif_plot"] == "y")
-    h = max( grid.steps )
     CFL = params["time_parameters"]["CFL_number"]
-    order = params["order"]
 
     numLevels = plot_params["levels"]
-
-    # On ne prend en compte une éventuelle solution exacte que si on la connait 
-    # ET que c'est pertinent (pas les vortex stat. après t = 0 par ex)
-    do_exact_pdf_plot = False
-    do_exact_gif_plot = False
-    if (simulationChoice == 2 or (simulationChoice == 3 and time < 1.e-14)):
-        do_exact_pdf_plot = (plot_params["do_exact_pdf_plot"] == "y")
-        do_exact_gif_plot = (plot_params["do_exact_gif_plot"] == "y")
-
-    X = grid.xValidGrid
-    Y = grid.yValidGrid
-
-    # if order > 0 :
-    #     X, Y, q = getVisualisationData(q, params)
 
     plots = [
         (XVEL, "U", "Vitesse U", "RdBu_r"),
@@ -315,7 +308,7 @@ def makeSolutions2DPlots(q, time, params, grid, pdf_writers, gif_writers):
     
 
     # FIGURES FOR EXACT SOLUTIONS
-    if (do_exact_pdf_plot or do_exact_gif_plot) :
+    if (do_exact_plot) :
         exact_plots = [
             (XVEL, "U_exact", "Vitesse U exacte", "RdBu_r"),
             (YVEL, "V_exact", "Vitesse V exacte", "RdBu_r"),
@@ -326,8 +319,6 @@ def makeSolutions2DPlots(q, time, params, grid, pdf_writers, gif_writers):
             (t[0], simul_short + t[1] + "_h"+str(round(h, 5))) + t[2:]
             for t in exact_plots
         ]
-
-        q_exact = solutions.getSolution(time, grid, simulationChoice, params["solution_parameters"])
 
         for var, filename_exact, title, cmap in exact_plots:
             fig, ax = plt.subplots()
@@ -340,10 +331,10 @@ def makeSolutions2DPlots(q, time, params, grid, pdf_writers, gif_writers):
             ax.set_aspect("equal")
             plt.tight_layout()
 
-            if (do_exact_pdf_plot) :
+            if (do_pdf_plot) :
                 pdf_writers[filename_exact].savefig(fig)
             
-            if (do_exact_gif_plot) :
+            if (do_gif_plot) :
                 # On écrit directement dans le gif
                 fig.canvas.draw()
                 frame = np.array(fig.canvas.renderer.buffer_rgba())
@@ -353,26 +344,16 @@ def makeSolutions2DPlots(q, time, params, grid, pdf_writers, gif_writers):
 
 
 
-def makeSolutions2DDiffNormPlots(q, time, params, grid, pdf_writers, gif_writers):
+def makeSolutions2DDiffNormPlots(X, Y, q, q_exact, time, params, h, pdf_writers, gif_writers):
     plot_params = params["plot_parameters"]
-    simulationChoice = params["simulation_choice"]
     simul_name, simul_short = getSimulKeys(params)
     scheme_name, scheme_short = getSchemeKeys(params)
     do_pdf_plot = (plot_params["do_pdf_plot"] == "y")
     do_gif_plot = (plot_params["do_gif_plot"] == "y")
-    h = max( grid.steps )
     CFL = params["time_parameters"]["CFL_number"]
 
     numLevels = plot_params["levels"]
 
-    q_exact = solutions.getSolution(time, grid, simulationChoice, params["solution_parameters"])
-
-    # On ne prend en compte une éventuelle solution exacte que si on la connait 
-    # ET que c'est pertinent (pas les vortex stat. après t = 0 par ex)
-
-
-    X = grid.xValidGrid
-    Y = grid.yValidGrid
 
 
     plots = [
@@ -423,19 +404,15 @@ def makeSolutions2DDiffNormPlots(q, time, params, grid, pdf_writers, gif_writers
 
 
 # 2D Plots of || U - U_eq || (perturbed vortex)
-def perturbedSolution2DPlots(q, q_prep, time, params, grid, pdf_writers, gif_writers):
+def perturbedSolution2DPlots(X, Y, q, q_prep, time, params, h, pdf_writers, gif_writers):
     plot_params = params["plot_parameters"]
     simul_name, simul_short = getSimulKeys(params)
     scheme_name, scheme_short = getSchemeKeys(params)
     do_pdf_plot = (plot_params["do_pdf_plot"] == "y")
     do_gif_plot = (plot_params["do_gif_plot"] == "y")
-    h = max( grid.steps )
     CFL = params["time_parameters"]["CFL_number"]
 
     numLevels = plot_params["levels"]
-
-    X = grid.xValidGrid
-    Y = grid.yValidGrid
     
     ecart = np.linalg.norm(q[:, :, :PRES] - q_prep[:, :, :PRES], ord=2, axis=2)
 
@@ -652,43 +629,45 @@ def closePdfWriters(pdf_writers):
 
 
 
-def makeObservableTablePlots(i_obs, observableTable, lastCompletedIteration, params, grid):
+def makeObservableTablePlots(i_obs, iterations_of_obs_table, observableTable, params, h):
     plot_loc = params["plot_parameters"]["plot_loc"]
     simul_name, simul_short = getSimulKeys(params)
     scheme_name, scheme_short = getSchemeKeys(params)
     same_plot = params["plot_parameters"]["same_plot"]
     finalTime, CFL = params["time_parameters"].values()
-    h = max( grid.steps )
+
+    # if (i_obs == [4]): # norms 
+    #     firstIteration = 0
+    #     lastIteration = lastCompletedIteration
+    # elif (i_obs == [5]): # errors : no computation for initial datum
+    #     firstIteration = 1
+    #     lastIteration = lastCompletedIteration
+    # elif (i_obs == [6]): # total masses
+    #     firstIteration = 0
+    #     lastIteration = lastCompletedIteration
+    # elif (i_obs == [7]): # divU
+    #     firstIteration = 0
+    #     lastIteration = lastCompletedIteration
 
     obs_name, obs_short = getObsKeys(i_obs)
 
-    if (i_obs == [4]): # norms 
-        firstIteration = 0
-        lastIteration = lastCompletedIteration
-    elif (i_obs == [5]): # errors : no computation for initial datum
-        firstIteration = 1
-        lastIteration = lastCompletedIteration
-    elif (i_obs == [6]): # total masses
-        firstIteration = 0
-        lastIteration = lastCompletedIteration
-    elif (i_obs == [7]): # divU
-        firstIteration = 0
-        lastIteration = lastCompletedIteration
+    obsNumber = len(iterations_of_obs_table)
+    # iterations_of_obs_table = np.arange(firstIteration, lastIteration+1)
+    # observableTable = observableTable[firstIteration : lastIteration+1]
 
-    iterationsRange = np.arange(firstIteration, lastIteration+1)
     if i_obs == [7] :
         with PdfPages(f"{plot_loc}{simul_short}{scheme_short}{obs_short}h{round(h, 5)}_CFL{CFL}.pdf") as pdf:
             obs_name = "Norme des termes physiques"
             obs_label = "physcial terms norm"
             plt.figure(1)
             fig, ax = plt.subplots()
-            if abs(np.max(observableTable[firstIteration:lastIteration+1, :]) / max(np.min(observableTable[firstIteration:lastIteration+1, :]), 1.e-16)) \
+            if abs(np.max(observableTable) / max(np.min(observableTable), 1.e-16)) \
                         > 100 :
                         plt.yscale("log")
             ax.set_title(f"{simul_name} avec {scheme_name} \n {obs_name} en fonction " \
                     f"de l'itération \n Tf = {finalTime}, CFL = {CFL} et h = {round(h, 5)}")
-            ax.plot(iterationsRange, observableTable[firstIteration:lastIteration+1, 0], label=f"${{|| \\widetilde{{\\mathsf{{grad}}}} \\, P ||}}_{{\\infty}}$")
-            ax.plot(iterationsRange, observableTable[firstIteration:lastIteration+1, 1], label=f"${{|| \\widetilde{{\\mathsf{{DIV}}}} \\, U ||}}_{{\\infty}}$")
+            ax.plot(iterations_of_obs_table, observableTable[:, 0], label=f"${{|| \\widetilde{{\\mathsf{{grad}}}} \\, P ||}}_{{\\infty}}$")
+            ax.plot(iterations_of_obs_table, observableTable[:, 1], label=f"${{|| \\widetilde{{\\mathsf{{DIV}}}} \\, U ||}}_{{\\infty}}$")
             ax.set_xlabel("n")
             ax.set_ylabel(obs_label)
             ax.legend()
@@ -703,7 +682,7 @@ def makeObservableTablePlots(i_obs, observableTable, lastCompletedIteration, par
         with PdfPages(f"{plot_loc}{simul_short}{scheme_short}{obs_short}h{round(h, 5)}_CFL{CFL}.pdf") as pdf:
             if (same_plot == "y"):
                 fig, ax = plt.subplots()
-                if abs(np.max(observableTable[firstIteration:lastIteration+1, :]) / max(np.min(observableTable[firstIteration:lastIteration+1, :]), 1.e-16)) \
+                if abs(np.max(observableTable) / max(np.min(observableTable), 1.e-16)) \
                     > 100 :
                     ax.set_yscale("log")
 
@@ -722,9 +701,9 @@ def makeObservableTablePlots(i_obs, observableTable, lastCompletedIteration, par
 
                 ax.set_title(f"{simul_name} avec {scheme_name} \n {obs_name} des composantes de q fonction " \
                                 f"de l'itération \n Tf = {finalTime}, CFL = {CFL} et h = {round(h, 5)}")
-                ax.plot(iterationsRange, observableTable[firstIteration:lastIteration+1, 0], label=u_label, marker="o", alpha = 0.5, markevery=lastCompletedIteration//10)
-                ax.plot(iterationsRange, observableTable[firstIteration:lastIteration+1, 1], label=v_label, marker="^", alpha = 0.5, markevery=lastCompletedIteration//10)
-                ax.plot(iterationsRange, observableTable[firstIteration:lastIteration+1, 2], label=p_label, marker="v", alpha = 0.5, markevery=lastCompletedIteration//10)
+                ax.plot(iterations_of_obs_table, observableTable[:, 0], label=u_label, marker="o", alpha = 0.5, markevery=obsNumber//10)
+                ax.plot(iterations_of_obs_table, observableTable[:, 1], label=v_label, marker="^", alpha = 0.5, markevery=obsNumber//10)
+                ax.plot(iterations_of_obs_table, observableTable[:, 2], label=p_label, marker="v", alpha = 0.5, markevery=obsNumber//10)
                 ax.set_xlabel("n")
                 # ax.set_xscale("log")
                 ax.legend()
@@ -734,7 +713,7 @@ def makeObservableTablePlots(i_obs, observableTable, lastCompletedIteration, par
             else :
                 for k, varName in var:
                     fig, ax = plt.subplots()
-                    if abs(np.max(observableTable[firstIteration:lastIteration+1, k]) / max(np.min(observableTable[firstIteration:lastIteration+1, :]), 1.e-16)) \
+                    if abs(np.max(observableTable[:, k]) / max(np.min(observableTable[:, k]), 1.e-16)) \
                         > 100 :
                         ax.set_yscale("log")
 
@@ -745,7 +724,7 @@ def makeObservableTablePlots(i_obs, observableTable, lastCompletedIteration, par
                     if (i_obs == [6]):
                         obs_label = f"$\\int_{{\\Omega}} {varName} \\, dX$"
 
-                    ax.plot(iterationsRange, observableTable[firstIteration:lastIteration+1, k])
+                    ax.plot(iterations_of_obs_table, observableTable[:, k])
                     ax.set_title(f"{simul_name} avec {scheme_name} \n {obs_name} de {varName} en fonction " \
                                     f"de l'itération \n Tf = {finalTime}, CFL = {CFL} et h = {round(h, 5)}")
                     ax.set_xlabel("n")
@@ -832,9 +811,6 @@ def getEvaluationOfBasisPolynomials(N, nVis):
 
 def getVisualisationData(q, params):
     Nx, Ny, nGhost = params["grid_parameters"]["mesh_parameters"].values()
-    iMin, jMin = nGhost, nGhost
-    iMax = Nx - 1 + iMin
-    jMax = Ny - 1 + jMin
     xL, xR, yL, yR = params["grid_parameters"]["domain_parameters"].values()
     order = params["order"]
     nVis = params["number_visualisation_points"]
@@ -847,13 +823,6 @@ def getVisualisationData(q, params):
         nVar = np.shape(q)[-1]
         qVis = np.zeros((Nx * nVis + 1, Ny * nVis + 1, nVar))
 
-    # 1 : CONSTRUCTION DE LA GRILLE DE VISUALISATION
-    xCoordVis = np.linspace(xL, xR, Nx * nVis + 1)
-    yCoordVis = np.linspace(yL, yR, Ny * nVis + 1)
-    XVis, YVis = np.meshgrid(xCoordVis, yCoordVis)
-    XVis = np.transpose(XVis)
-    YVis = np.transpose(YVis)
-
     # print("shape of qVis : ", np.shape(qVis))
 
 
@@ -862,15 +831,15 @@ def getVisualisationData(q, params):
           for j in range(Ny):
             for k in range(order):
               for l in range(order):
-                qVis[i * order + k, j * order + l] = q[i + iMin, j + jMin, k, l]
+                qVis[i * order + k, j * order + l] = q[i, j, k, l]
     
         for j in range(Ny):
-            qVis[Nx * order, j*order:(j+1)*order] = q[Nx+iMin, j+jMin, 0, :]
+            qVis[Nx * order, j*order:(j+1)*order] = q[Nx, j, 0, :]
     
         for i in range(Nx):
-            qVis[i*order:(i+1)*order, Ny * order] = q[i+iMin, Ny+jMin, :, 0]
+            qVis[i*order:(i+1)*order, Ny * order] = q[i, Ny, :, 0]
     
-        qVis[Nx * order, Ny * order] = q[Nx+iMin, Ny+jMin, 0, 0]
+        qVis[Nx * order, Ny * order] = q[Nx, Ny, 0, 0]
 
 
     else : # LA GRILLE DE VISUALISATION NE COÏNCIDE PAS AVEC CELLE D'ORDRE ELEVE : ON DOIT INTERPOLER
@@ -883,10 +852,10 @@ def getVisualisationData(q, params):
         q_cell_ij = np.zeros((order+1, order+1, 3))
         for i in range(Nx):
             for j in range(Ny):
-                q_cell_ij[:-1, :-1] = q[i + iMin, j + jMin]
-                q_cell_ij[order, :-1] = q[i + iMin + 1, j + jMin, 0, :]
-                q_cell_ij[:-1, order] = q[i + iMin, j + jMin + 1, :, 0]
-                q_cell_ij[order, order] = q[i + iMin + 1, j + jMin + 1, 0, 0]
+                q_cell_ij[:-1, :-1] = q[i, j]
+                q_cell_ij[order, :-1] = q[i + 1, j, 0, :]
+                q_cell_ij[:-1, order] = q[i, j + 1, :, 0]
+                q_cell_ij[order, order] = q[i + 1, j + 1, 0, 0]
 
                 for var in range(3):
                     qVis[i * nVis : (i+1) * nVis, j * nVis : (j+1) * nVis, var] = evalMat_transpose @ q_cell_ij[:, :, var] @ evalMat
@@ -919,4 +888,4 @@ def getVisualisationData(q, params):
         qVis[:, Ny * nVis] = qVis[:, 0]
 
 
-    return XVis, YVis, qVis
+    return qVis

@@ -13,7 +13,7 @@ import grid_mod
 import plots
 import spatial_operators
 import solutions
-from time_evolutions import getOneApproximateSolution, getConvergenceTest
+from time_evolutions import getOneApproximateSolution, getConvergenceTest, makePerturbedPreparedSimulation
 
 
 
@@ -51,7 +51,7 @@ if __name__ == "__main__":
     else :
         if simulationChoice == 5 : # For vortex + pert : long time simu + add of perturbation
             print("perturbed simulation")
-            # makePerturbedPreparedSimulation(params)
+            makePerturbedPreparedSimulation(params)
         
         else :
             getOneApproximateSolution(params)

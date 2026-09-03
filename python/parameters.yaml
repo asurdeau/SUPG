@@ -12,7 +12,7 @@ grid_parameters :
 
 
 time_parameters : 
-  end_time : 1.
+  end_time : 100.
   CFL_number : 0.45
 
 
@@ -26,12 +26,12 @@ scheme_choice : 4      # 1 : CLASSICAL FV UPWIND || 2 : LUMPED SUPG || 3 : "À l
 
 
 
-observables_choices : [2]                # 1: 1d Plots of solutions || 2: 2d Plots of solutions || 3: 2d Plots of norm of the difference
-                                         # 4: norms of the approx sol || 5: Errors w/ exact || 6: total mass || 7: DIV U
+observables_choices : [2, 7]                # 1: 1d Plots of solutions || 2: 2d Plots of solutions || 3: 2d Plots of norm of the difference
+                                         # 4: norms of the approx sol || 5: Errors w/ exact || 6: total mass || 7: Physical Terms
                                          # 8: CV tests || 9: series of tests ||
 
 
-simulation_choice : 2                    # 1: cst || 2 : analytical periodic || 3: stationary vortex
+simulation_choice : 3                    # 1: cst || 2 : analytical periodic || 3: stationary vortex
                                          # 4: cst + perturbation || 5: stationary vortex + pressure perturbation
                                          # 6: 0 + noise || 7: checkerboards
 
@@ -43,20 +43,20 @@ solution_parameters :
     speed : 1.
   vortex :
     radius : 0.45 
-    profile_choice : 1                                  # 1 : C^6 profile || 2 : C^inf profile || 3 : C^0 profile
+    profile_choice : 1                                  # 1 : C^3 profile || 2 : C^inf profile || 3 : C^0 profile
     center : [0.5, 0.5] 
   gaussian_noise :                                      # perturbation for the pressure
     order : 2                                           # "-" order of the height
     center : [0.4, 0.43]                                # the center 
     radius : 0.1                                        # the radius
-  noise_range : [-3, 3]                                # n1, n2 for the range written as  [-10^(-n1), -10^(-n2)] u [10^(-n2), 10^(-n1)]
+  noise_range : [-5, 5]                                 # n1, n2 for the range written as  [-10^(-n1), -10^(-n2)] u [10^(-n2), 10^(-n1)]
   checkerboard : [[1., -1.], [1., -1.], [1., -1.]]      # values for u, v and p (first is the one at (0, 0) and other of the same checkerboard)
 
 
 
 plot_parameters :
   # Common parameters
-  plot_loc : "Plots/Tests/Modified_opt_SUPG/"
+  plot_loc : "Plots/Tests/"
   # 2d and 1d plots parameters
   nb_plots : 11             # Counting the initial one ! If < 1 no gif !
   do_pdf_plot : y           # y -> yes || anything else -> no (no "" but still counted as a string)
@@ -68,6 +68,7 @@ plot_parameters :
   levels : 10               # number of levels for contour 2d plots
   # 1d parameters
   section : 3               # 1 : horizontal middle || 2 : vertical middle || 3 : diagonal
+  slice_indices : [50, 50]  # slices indices i_slice and j_slice
   same_plot : y             # all norms on same plot :: y -> yes || anything else -> no 
   
   
@@ -76,5 +77,5 @@ plot_parameters :
 
 
 # HIGHER ORDER PARAMETERS
-order : 1
-number_visualisation_points : 7
+order : 0
+number_visualisation_points : 5

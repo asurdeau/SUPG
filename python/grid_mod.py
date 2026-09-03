@@ -17,29 +17,31 @@ class gridOperator:
 
         self.valid_grid = nGhost, Nx + nGhost - 1, nGhost, Ny + nGhost - 1
 
-        self.steps = (xR - xL) / (1. * Nx), (yR - yL) / (1. * Ny)
+        dx, dy = (xR - xL) / (1. * Nx), (yR - yL) / (1. * Ny)
+        self.steps = dx, dy
+        self.characteristic_size = max(dx, dy)
 
         # IMPORTANT HERE : THE GRIDS ARE BUILT SO THAT WE HAVE THE WHOLE DOMAIN 
         # EVEN FOR PERIODIC BC !!
-        self.xCoord = np.linspace(xL, xR, Nx, endpoint=False)
-        self.yCoord = np.linspace(yL, yR, Ny, endpoint=False)
+        xCoord = np.linspace(xL, xR, Nx+1, endpoint=True)
+        yCoord = np.linspace(yL, yR, Ny+1, endpoint=True)
 
+        X, Y = np.meshgrid(xCoord, yCoord, indexing="ij")
 
-        # Construction of the valid grid
-        xx_valid, yy_valid = np.meshgrid(self.xCoord, self.yCoord)
-        self.xValidGrid = np.transpose(xx_valid)
-        self.yValidGrid = np.transpose(yy_valid)
+        if order == 0 :
+            self.xValidGrid = X
+            self.yValidGrid = Y
 
-        # Ajout des mailles fantômes (maillage uniforme uniquement)
-        ghost_x = np.arange(1, nGhost + 1)
-        self.xCoord = np.concatenate([xL - ghost_x[::-1] * self.steps[0], self.xCoord, xR + (ghost_x-1) * self.steps[0]])
+        else :
+            X_HO, Y_HO = np.zeros( (np.shape(X) + (order, order,)) )
 
-        ghost_y = np.arange(1, nGhost + 1)
-        self.yCoord = np.concatenate([yL - ghost_y[::-1] * self.steps[1], self.yCoord, yR + (ghost_y-1) * self.steps[1]])
+            for k in range(order):
+                for l in range(order):
+                    X_HO[:, :, k, l] = X + (1. * k) / order * dx
+                    Y_HO[:, :, k, l] = Y + (1. * l) / order * dy
 
-        xx, yy = np.meshgrid(self.xCoord, self.yCoord)
-        self.xGrid = np.transpose(xx)
-        self.yGrid = np.transpose(yy)
+            self.xValidGrid = X_HO
+            self.yValidGrid = Y_HO
 
 
     

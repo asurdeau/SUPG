@@ -68,9 +68,7 @@ def addPerturbation(q, X, Y, solParams):
 
 
 # SOLUTION 
-def getSolution(t, grid, simulationChoice, solParams):
-    X = grid.xValidGrid
-    Y = grid.yValidGrid
+def getSolution(t, X, Y, simulationChoice, solParams):
 
     if simulationChoice == 1 : # 1 : constant
         u = np.full_like(X, solParams["constant"][XVEL])
@@ -88,12 +86,6 @@ def getSolution(t, grid, simulationChoice, solParams):
             return getVortexSolution(X, Y, solParams)
 
 
-    elif simulationChoice == 4 : # 4 : constant + perturbation(s)
-        u = np.full_like(X, solParams["constant"][XVEL])
-        v = np.full_like(X, solParams["constant"][YVEL])
-        p = np.full_like(X, solParams["constant"][PRES])
-
-        return addPerturbation(np.stack([u, v, p], axis=-1), X, Y, solParams)
 
 
     elif simulationChoice == 6 : # 6 : 0 + random noise
@@ -109,7 +101,7 @@ def getSolution(t, grid, simulationChoice, solParams):
         return q
     
 
-    if simulationChoice == 7 : # 4 : checkerboard
+    if simulationChoice == 7 : # 7 : checkerboard
         modes = solParams["checkerboard"]["modes"]
         amplitudes = solParams["checkerboard"]["amplitudes"]
 
@@ -141,82 +133,3 @@ def getSolution(t, grid, simulationChoice, solParams):
 ####################################################################################################################
 
 
-
-
-
-# SOLUTION 
-def getLagrangeBasisSolution_arbitrar_order(t, order, grid, solParams):
-    simulationChoice = solParams["simulation_choice"]
-    X = grid.xValidGrid
-    Y = grid.yValidGrid
-    shape = np.shape(X) + (order, order)
-    dx, dy = grid.steps
-
-    # Building higher order grid 
-    X_high_order = np.zeros(shape) 
-    Y_high_order = np.zeros(shape) 
-
-    for k in range(order):
-        for l in range(order):
-            X_high_order[:, :, k, l] = X + k / order * dx
-            Y_high_order[:, :, k, l] = Y + l / order * dy
-
-
-    if simulationChoice == 1 : # 1 : constant
-        u = solParams["constant"][0] * np.ones(shape) 
-        v = solParams["constant"][1] * np.ones(shape) 
-        p = solParams["constant"][2] * np.ones(shape) 
-        return np.stack([u, v, p], axis=-1)
-    
-
-    if simulationChoice == 2 : # 2 : 0 + random noise
-        # parameters extraction
-        n1, n2 = solParams["noise_range"]
-
-        # draw of uniform matrices for the absolute values and for the sign
-        rng = np.random.default_rng()
-        random_abs = np.exp(- ((n2 - n1) * rng.binomial(n=1, p=0.5, size=((3, ) + shape)) + n1) * np.log(10.) )
-        random_sign = rng.random((3, ) + shape)
-
-        return random_abs * random_sign
-    
-
-    if simulationChoice == 3 : # 3 : constant + small gaussian
-        # parameters extraction
-        u, v, p = np.zeros((3, ) + shape)
-
-        n, x0, y0, r0 = solParams["gaussian_noise"]
-        eps = 0.1**n
-
-        rho = np.sqrt( (X - x0)**2 + (Y - y0)**2 ) / r0
-        p[rho < 1.] = eps * np.exp( 0.5 * ( 1. - 1./(1. - rho[rho < 1])**2 ) )
-
-        return np.stack([u, v, p], axis=-1)
-    
-
-    # if simulationChoice == 4 : # 4 : checkerboard
-    #     u0, v0, p0 = solParams["checkerboard"]
-    #     u = u0[0] * np.ones((np.shape(X)))
-    #     v = v0[0] * np.ones((np.shape(X)))
-    #     p = v0[0] * np.ones((np.shape(X)))
-
-    #     u[1::2, 0::2] = u0[1]
-    #     u[0::2, 1::2] = u0[1]
-
-    #     v[1::2, 0::2] = v0[1]
-    #     v[0::2, 1::2] = v0[1]
-
-    #     p[1::2, 0::2] = p0[1]
-    #     p[0::2, 1::2] = p0[1]
-
-    #     return np.stack([u, v, p], axis=-1)
-    
-
-    if simulationChoice == 5 : # 5 : analytical periodic
-        return getAnalyticalPeriodicSolution(t, X_high_order, Y_high_order, solParams["analytical_periodic"])
-
-    if ( (simulationChoice == 6) or (simulationChoice == 7 and t > 1.e-12) ) : # 6 : stationary vortex
-        return getVortexSolution(X_high_order, Y_high_order, solParams)
-    
-    if (simulationChoice == 7 and t < 1.e-12) : # 7 : stationary + pressure perturbation
-        return getPerturbedVortexSolution(X, Y, solParams)

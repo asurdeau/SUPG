@@ -7,7 +7,8 @@ import time
 import config
 from config import XVEL, YVEL, PRES
 import grid_mod
-from spatial_operators import getApproxDivFlux, get_evaluation_of_arbitrar_order_SUPG_weighted_evolution_operator, get_evaluation_of_arbitrar_order_SUPG_weighted_mass_operator
+from spatial_operators import getApproxDivFlux, getApproxDivFluxAndPhysicalTerms, \
+  get_evaluation_of_arbitrar_order_SUPG_weighted_evolution_operator, get_evaluation_of_arbitrar_order_SUPG_weighted_mass_operator
 import spatial_operators
 
 
@@ -18,13 +19,12 @@ import spatial_operators
 ####################################################################################################################
 
 
-
-def getForwardEulerUpdate(q, dt, gridOp, iMin, iMax, jMin, jMax, dx, dy, schemeChoice, simulationChoice, operators, operatorsCoeff, \
+def getForwardEulerUpdate(q, dt, grid, iMin, iMax, jMin, jMax, dx, dy, schemeChoice, simulationChoice, operatorsCoeff, \
                           divFluxTimeTable, updateTimeTable, currentIteration):
     
     # CALCUL DE DIV.FLUXES
     t0 = time.time()
-    divF = getApproxDivFlux(q, gridOp, iMin, iMax, jMin, jMax, dx, dy, schemeChoice, operators, operatorsCoeff)
+    divF = getApproxDivFlux(q, grid, iMin, iMax, jMin, jMax, dx, dy, schemeChoice, operatorsCoeff)
     t1 = time.time()
 
     divFluxTimeTable[currentIteration] = t1 - t0
@@ -37,21 +37,21 @@ def getForwardEulerUpdate(q, dt, gridOp, iMin, iMax, jMin, jMax, dx, dy, schemeC
     updateTimeTable[currentIteration] = t3 - t2
 
     ### Conditions de bords
-    if (simulationChoice == 6 or simulationChoice == 7):     # vortex simulation : Dirichlet BC
-        gridOp.dirichlet(q)
+    if (simulationChoice == 3 or simulationChoice == 5):     # vortex simulation : Dirichlet BC
+        grid.dirichlet(q)
     else :                                                   # else (default) : periodic BC 
-        gridOp.periodize(q) 
+        grid.periodize(q) 
 
     return q
 
 
 
-def getForwardEulerUpdateAndPhysicalTerms(q, dt, gridOp, iMin, iMax, jMin, jMax, dx, dy, schemeChoice, simulationChoice, operators, operatorsCoeff, \
+def getForwardEulerUpdateAndPhysicalTerms(q, dt, grid, iMin, iMax, jMin, jMax, dx, dy, schemeChoice, simulationChoice, operatorsCoeff, \
                                           divFluxTimeTable, updateTimeTable, currentIteration):
     
     # CALCUL DE DIV.FLUXES
     t0 = time.time()
-    divF, physicalTerms = getApproxDivFlux(q, gridOp, iMin, iMax, jMin, jMax, dx, dy, schemeChoice, operators, operatorsCoeff)
+    divF, physicalTerms = getApproxDivFluxAndPhysicalTerms(q, grid, iMin, iMax, jMin, jMax, dx, dy, schemeChoice, operatorsCoeff)
     t1 = time.time()
 
     divFluxTimeTable[currentIteration] = t1 - t0
@@ -64,12 +64,12 @@ def getForwardEulerUpdateAndPhysicalTerms(q, dt, gridOp, iMin, iMax, jMin, jMax,
     updateTimeTable[currentIteration] = t3 - t2
 
     ### Conditions de bords
-    if (simulationChoice == 6 or simulationChoice == 7):     # vortex simulation : Dirichlet BC
-        gridOp.dirichlet(q)
+    if (simulationChoice == 3 or simulationChoice == 5):     # vortex simulation : Dirichlet BC
+        grid.dirichlet(q)
     else :                                                   # else (default) : periodic BC 
-        gridOp.periodize(q) 
+        grid.periodize(q) 
 
-    return q
+    return q, physicalTerms
 
 
 
