@@ -153,12 +153,12 @@ def test6(X, Y): # x^a . (1-x)^b . y^c . (1-y)^d
 # U has x-first-derivative on the last component and x-second-derivative on the first component
 
 def first_component_operations_errors(q, iMin, iMax, jMin, jMax, dx, dy, divFlux_method, f_x, f_xx, f_xy, \
-                                      grid, schemeChoice, operators, operatorsCoeffs):
+                                      grid, schemeChoice, operatorsCoeffs):
     
     iMin, iMax, jMin, jMax = grid.valid_grid
     dx = grid.steps[0]
 
-    divFlux = divFlux_method(q, grid, iMin, iMax, jMin, jMax, dx, dy, schemeChoice, operators, operatorsCoeffs)
+    divFlux = divFlux_method(q, grid, iMin, iMax, jMin, jMax, dx, dy, schemeChoice, operatorsCoeffs)
     print("test periodicité divFlux", grid.isPeriodic(divFlux))
     print("ecart divFlux bandes horizontales : ", np.max(divFlux[iMin, jMin:jMax+1] - divFlux[iMax, jMin:jMax+1]))
     print("ecart divFlux bandes verticales : ", np.max(divFlux[iMin:iMax+1, jMin] - divFlux[iMin:iMax+1, jMax]))
@@ -174,11 +174,11 @@ def first_component_operations_errors(q, iMin, iMax, jMin, jMax, dx, dy, divFlux
 
 
 def second_component_operations_errors(q, iMin, iMax, jMin, jMax, dx, dy, divFlux_method, f_y, f_yy, f_xy, \
-                                       grid, schemeChoice, operators, operatorsCoeffs):
+                                       grid, schemeChoice, operatorsCoeffs):
     iMin, iMax, jMin, jMax = grid.valid_grid
     dy = grid.steps[1]
 
-    divFlux = divFlux_method(q, grid, iMin, iMax, jMin, jMax, dx, dy, schemeChoice, operators, operatorsCoeffs)
+    divFlux = divFlux_method(q, grid, iMin, iMax, jMin, jMax, dx, dy, schemeChoice, operatorsCoeffs)
 
     first_component_error = np.max(abs(- 2. / dy * divFlux[iMin:iMax+1, jMin:jMax+1, 0] - f_xy[iMin:iMax+1, jMin:jMax+1]))
 
@@ -191,11 +191,11 @@ def second_component_operations_errors(q, iMin, iMax, jMin, jMax, dx, dy, divFlu
 
 
 def third_component_operations_errors(q, iMin, iMax, jMin, jMax, dx, dy, divFlux_method, f_x, f_y, f_xx, f_yy, \
-                                      grid, schemeChoice, operators, operatorsCoeffs):
+                                      grid, schemeChoice, operatorsCoeffs):
     iMin, iMax, jMin, jMax = grid.valid_grid
     dx, dy = grid.steps
 
-    divFlux = divFlux_method(q, grid, iMin, iMax, jMin, jMax, dx, dy, schemeChoice, operators, operatorsCoeffs)
+    divFlux = divFlux_method(q, grid, iMin, iMax, jMin, jMax, dx, dy, schemeChoice, operatorsCoeffs)
 
     first_component_error = np.max(abs(divFlux[iMin:iMax+1, jMin:jMax+1, 0] - f_x[iMin:iMax+1, jMin:jMax+1]))
 
@@ -235,8 +235,8 @@ if (False) :
     gridOp = grid_mod.gridOperator(params)
     iMin, iMax, jMin, jMax = gridOp.valid_grid
     dx, dy = gridOp.steps
-    X = gridOp.xGrid
-    Y = gridOp.yGrid
+    X = gridOp.xValidGrid
+    Y = gridOp.yValidGrid
 
     if schemeChoice == 3:
         operatorsCoeffs = spatial_operators.extract_operators(operators)
@@ -502,7 +502,7 @@ if (True) :
     xL, xR = 0., 1.
     yL, yR = 0., 1.
     nGhost = 2
-    order = 1.
+    order = 0
     grid_params = {"domain_parameters" : {"xL" : xL, "xR" : xR, "yL" : yL, "yR" : yR}, "mesh_parameters" : {"Nx" : 0, "Ny" : 0, "nGhost" : nGhost}}
     params = {"grid_parameters" : grid_params, "order" : order}
     schemeChoice = 4
@@ -534,11 +534,18 @@ if (True) :
         hList[k] = dx
 
 
-        X, Y = gridOp.xGrid, gridOp.yGrid
-        Xvalid = gridOp.xValidGrid
+        xCoord = np.linspace(xL, xR, n+1, endpoint=True)
+        yCoord = np.linspace(yL, yR, n+1, endpoint=True)
+        leftGhostIndices = np.arange(-nGhost, 0)
+        rightGhostIndices = np.arange(1, nGhost)
+
+        xCoord = np.concatenate([xL + leftGhostIndices * dx, xCoord, xR + rightGhostIndices * dx])
+        yCoord = np.concatenate([yL + leftGhostIndices * dy, yCoord, yR + rightGhostIndices * dy])
+
+        X, Y = np.meshgrid(xCoord, yCoord, indexing="ij")
 
 
-        f, f_x, f_y, f_xx, f_yy, f_xy = test3(X, Y)
+        f, f_x, f_y, f_xx, f_yy, f_xy = test4(X, Y)
         # print("test periodicité donnée : ", gridOp.isPeriodic(f))
         # print("écarts bords verticaux : ", np.max(abs(f[iMin, jMin:jMax+1] - f[iMax+1, jMin:jMax+1])))
         # print("écarts bords verticaux : ", np.max(abs(f[iMin:iMax+1, jMin] - f[iMin:iMax+1, jMax+1])), "\n")
@@ -554,13 +561,13 @@ if (True) :
         # FIRST COMPONENT OPERATIONS :
         Error_q1_1[k], Error_q1_2[k], Error_q1_3[k] = \
             first_component_operations_errors(q1, iMin, iMax, jMin, jMax, dx, dy, divFlux_method, f_x, f_xx, f_xy, \
-                                              gridOp, schemeChoice, operators, operatorsCoeffs)
+                                              gridOp, schemeChoice, operatorsCoeffs)
         Error_q2_1[k], Error_q2_2[k], Error_q2_3[k] = \
             second_component_operations_errors(q2, iMin, iMax, jMin, jMax, dx, dy, divFlux_method, f_y, f_yy, f_xy, \
-                                               gridOp, schemeChoice, operators, operatorsCoeffs)
+                                               gridOp, schemeChoice, operatorsCoeffs)
         Error_q3_1[k], Error_q3_2[k], Error_q3_3[k] = \
             third_component_operations_errors(q3, iMin, iMax, jMin, jMax, dx, dy, divFlux_method, f_x, f_y, f_xx, f_yy, \
-                                              gridOp, schemeChoice, operators, operatorsCoeffs)
+                                              gridOp, schemeChoice, operatorsCoeffs)
 
         print("")
         print("nombre de points par côté : ", n)

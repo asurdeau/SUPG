@@ -74,11 +74,12 @@ def getOneApproximateSolution(params, q_prep=[]):
     dt_apriori = min(dx, dy) * CFL
 
     ### time tables
-    divFluxTimeTable, updateTimeTable = np.zeros((2, int(2. * finalTime / dt_apriori)))
+    divFluxTimeTable, updateTimeTable = np.zeros((2, int(2. * finalTime / dt_apriori + 1)))
 
 
     ### Initialise coefficients
     operators = yaml.load(open("operators.yaml"),Loader=yaml.SafeLoader)
+    operatorsCoeff = []
     if schemeChoice == 3 :
         operatorsCoeff = spatial_operators.extract_operators(operators)
     elif schemeChoice == 4 :
@@ -102,7 +103,7 @@ def getOneApproximateSolution(params, q_prep=[]):
         q[iMin:iMax+2, jMin:jMax+2] = q_prep
         q[iMin:iMax+2, jMin:jMax+2] = solutions.addPerturbation(q[iMin:iMax+1, jMin:jMax+1], X, Y, params["solution_parameters"])
 
-    if (simulationChoice == 5):
+    elif simulationChoice == 5 :
         q[iMin:iMax+2, jMin:jMax+2] = q_prep
         q[iMin:iMax+2, jMin:jMax+2] = solutions.addPerturbation(q[iMin:iMax+1, jMin:jMax+1], X, Y, params["solution_parameters"])
 
@@ -138,9 +139,9 @@ def getOneApproximateSolution(params, q_prep=[]):
     startTimeLoop = time.time()
     divFluxTimeTable2, updateTimeTable2 = np.zeros((2, int(2. * finalTime / dt_apriori)))
     schemesCompTable = - np.ones(int(2. * finalTime / dt_apriori))
-    q1 = q.copy()
-    q2 = q.copy()
-
+    # q1 = q.copy()
+    # q2 = q.copy()
+   
     if order == 0 :   # FIRST ORDER SIMULATION
         if (any(np.array(i_obs_list) == 7)): # WE HAVE TO COMPUTE THE PHYSICAL TERMS
             while (abs(currentTime - finalTime) > 1.e-10) :
@@ -260,7 +261,7 @@ def getOneApproximateSolution(params, q_prep=[]):
 
     ### Dernière observable éventuelle 
     getLastObservables(q, q_prep, currentTime, gridOp, params, order, operatorsCoeff, do_obs_table, \
-                       pdf_writers, gif_writers, nbPlots, do_pdf_plot, do_gif_plot, \
+                       Xvis, Yvis, pdf_writers, gif_writers, nbPlots, do_pdf_plot, do_gif_plot, \
                        iterations_of_obs_table, normsTable, errorsTable, massesTable, physicalTermsNormsTable)
 
     
@@ -446,8 +447,6 @@ def getInitialObservables(q, q_prep, finalTime, dt_apriori, grid, params, simula
         else :
             obs_tables_step = int(a_priori_nb_iter / 400)
 
-        
-        obs_tables_step = 1
         print("obs_tables_step : \n ", obs_tables_step)
 
         iterations_of_obs_table = [0]
@@ -519,13 +518,13 @@ def getIntermediateObservables(q, q_prep, physicalTerms, currentTime, finalTime,
 
             if (do_obs_table[1]):
                 i_obs = 1
-                makeSolutionsPlots(Xvis, q_valid, [], currentTime, i_obs, params, h, pdf_writers, gif_writers) # plots : pdf et/ou gif
+                makeSolutionsPlots(Xvis, Yvis, q_valid, [], currentTime, i_obs, params, h, pdf_writers, gif_writers) # plots : pdf et/ou gif
             if (do_obs_table[2]):
                 i_obs = 2
-                makeSolutionsPlots(Xvis, q_valid, q_prep, currentTime, i_obs, params, h, pdf_writers, gif_writers) # plots : pdf et/ou gif
+                makeSolutionsPlots(Xvis, Yvis, q_valid, q_prep, currentTime, i_obs, params, h, pdf_writers, gif_writers) # plots : pdf et/ou gif
             if (do_obs_table[3]):
                 i_obs = 3
-                makeSolutionsPlots(Xvis, q_valid, [], currentTime, i_obs, params, h, pdf_writers, gif_writers) # plots : pdf et/ou gif
+                makeSolutionsPlots(Xvis, Yvis, q_valid, [], currentTime, i_obs, params, h, pdf_writers, gif_writers) # plots : pdf et/ou gif
         
             nbPlotsDone += 1
             doPlot = False
@@ -540,22 +539,17 @@ def getIntermediateObservables(q, q_prep, physicalTerms, currentTime, finalTime,
             iterations_of_obs_table.append(lastCompletedIteration)
 
     if (do_obs_table[4] and addObservation): # Sup norm of the solution (stability purposes)
-        # normsTable[lastCompletedIteration] = np.max(abs(q[iMin:iMax+2, jMin:jMax+2]), axis=(0, 1))
         normsTable.append(np.max(abs(q[iMin:iMax+2, jMin:jMax+2]), axis=(0, 1)))
     
     if (do_obs_table[5] and addObservation): # Sup errors (consistency / convergence purposes) 
         q_exact = solutions.getSolution(currentTime, X, Y, params["simulation_choice"], params["solution_parameters"])
-        # errorsTable[lastCompletedIteration] = np.max(abs(q[iMin:iMax+2, jMin:jMax+2] - q_exact), axis=(0, 1))
         errorsTable.append(np.max(abs(q[iMin:iMax+2, jMin:jMax+2] - q_exact), axis=(0, 1)))
 
     if (do_obs_table[6] and addObservation): # total masses
-        # massesTable[lastCompletedIteration] = dx * dy * np.sum(q[iMin:iMax+1, jMin:jMax+1], axis=(0, 1))
         massesTable.append(dx * dy * np.sum(q[iMin:iMax+1, jMin:jMax+1], axis=(0, 1)))
     
     if (do_obs_table[7] and addPhysicalTermsObservation): # grad P and div U
-        # physicalTermsNormsTable[lastCompletedIteration-1, 0] = np.max(abs(physicalTerms[:, :, :-1]))
-        # physicalTermsNormsTable[lastCompletedIteration-1, 1] = np.max(abs(physicalTerms[:, :, -1]))
-        physicalTermsNormsTable.append(np.array([np.max(abs(physicalTerms[:, :, :-1])), np.max(abs(physicalTerms[:, :, -1]))]))
+        physicalTermsNormsTable.append(np.array([np.max(abs(physicalTerms[iMin:iMax+2, jMin:jMax+2, :-1])), np.max(abs(physicalTerms[iMin:iMax+2, jMin:jMax+2, -1]))]))
     
     return doPlot, nbPlotsDone, iterations_of_obs_table, normsTable, errorsTable, massesTable, physicalTermsNormsTable
 
@@ -564,7 +558,7 @@ def getIntermediateObservables(q, q_prep, physicalTerms, currentTime, finalTime,
 
 
 def getLastObservables(q, q_prep, currentTime, grid, params, order, operatorsCoeff, do_obs_table, \
-                       pdf_writers, gif_writers, nbPlots, do_pdf_plot, do_gif_plot, \
+                       Xvis, Yvis, pdf_writers, gif_writers, nbPlots, do_pdf_plot, do_gif_plot, \
                        iterations_of_obs_table, normsTable, errorsTable, massesTable, physicalTermsNormsTable):
     
     iMin, iMax, jMin, jMax = grid.valid_grid
@@ -576,13 +570,13 @@ def getLastObservables(q, q_prep, currentTime, grid, params, order, operatorsCoe
 
             if do_obs_table[1] :
                 i_obs = 1
-                makeSolutionsPlots(q_valid, [], currentTime, i_obs, params, h, pdf_writers, gif_writers) # plots : pdf et/ou gif
+                makeSolutionsPlots(Xvis, Yvis, q_valid, [], currentTime, i_obs, params, h, pdf_writers, gif_writers) # plots : pdf et/ou gif
             if do_obs_table[2] :
                 i_obs = 2
-                makeSolutionsPlots(q_valid, q_prep, currentTime, i_obs, params, h, pdf_writers, gif_writers) # plots : pdf et/ou gif
+                makeSolutionsPlots(Xvis, Yvis, q_valid, q_prep, currentTime, i_obs, params, h, pdf_writers, gif_writers) # plots : pdf et/ou gif
             if do_obs_table[3] :
                 i_obs = 3
-                makeSolutionsPlots(q_valid, [], currentTime, i_obs, params, h, pdf_writers, gif_writers) # plots : pdf et/ou gif
+                makeSolutionsPlots(Xvis, Yvis, q_valid, [], currentTime, i_obs, params, h, pdf_writers, gif_writers) # plots : pdf et/ou gif
 
             closePdfWriters(pdf_writers)
             closeGifWriters(gif_writers)
@@ -604,9 +598,9 @@ def getLastObservables(q, q_prep, currentTime, grid, params, order, operatorsCoe
     if (do_obs_table[5]): # Sup errors (consistency / convergence purposes) 
         i_obs = [5]
         errorsTable = np.array(errorsTable)
-        print("Max de l'erreur sur u : ", np.max(errorsTable[:, XVEL]))
-        print("Max de l'erreur sur v : ", np.max(errorsTable[:, YVEL]))
-        print("Max de l'erreur sur p : ", np.max(errorsTable[:, PRES]))
+        print("Max de l'erreur sur u : ", np.max(errorsTable[1:, XVEL]))
+        print("Max de l'erreur sur v : ", np.max(errorsTable[1:, YVEL]))
+        print("Max de l'erreur sur p : ", np.max(errorsTable[1:, PRES]))
         print(" ")
         makeObservableTablePlots(i_obs, iterations_of_obs_table, errorsTable, params, h)
     
@@ -626,10 +620,7 @@ def getLastObservables(q, q_prep, currentTime, grid, params, order, operatorsCoe
         dx, dy = grid.steps
 
         physicalTerms = spatial_operators.getApproxDivFluxAndPhysicalTerms(q, grid, iMin, iMax, jMin, jMax, dx, dy, schemeChoice, operatorsCoeff)[1]
-
-        # physicalTermsNormsTable[lastCompletedIteration, 0] = np.max(abs(physicalTerms[:, :, :-1]))
-        # physicalTermsNormsTable[lastCompletedIteration, 1] = np.max(abs(physicalTerms[:, :, -1]))
-        physicalTermsNormsTable.append(np.array([np.max(abs(physicalTerms[:, :, :-1])), np.max(abs(physicalTerms[:, :, -1]))]))
+        physicalTermsNormsTable.append(np.array([np.max(abs(physicalTerms[iMin:iMax+2, jMin:jMax+2, :-1])), np.max(abs(physicalTerms[iMin:iMax+2, jMin:jMax+2, -1]))]))
         physicalTermsNormsTable = np.array(physicalTermsNormsTable)
 
         print("Max de |grad P| : ", np.max(physicalTermsNormsTable[:, 0]))

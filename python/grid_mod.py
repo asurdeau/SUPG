@@ -33,7 +33,7 @@ class gridOperator:
             self.yValidGrid = Y
 
         else :
-            X_HO, Y_HO = np.zeros( (np.shape(X) + (order, order,)) )
+            X_HO, Y_HO = np.zeros( ((2, ) + np.shape(X) + (order, order,)) )
 
             for k in range(order):
                 for l in range(order):

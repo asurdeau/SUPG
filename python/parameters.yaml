@@ -6,13 +6,13 @@ grid_parameters :
     yR : 1.
 
   mesh_parameters : # Nx and Ny are the NUMBER OF CELLS, NOT POINTS !!!
-    Nx : 100 
+    Nx : 100
     Ny : 100
     nGhost : 2
 
 
 time_parameters : 
-  end_time : 100.
+  end_time : 100.0
   CFL_number : 0.45
 
 
@@ -60,7 +60,7 @@ plot_parameters :
   # 2d and 1d plots parameters
   nb_plots : 11             # Counting the initial one ! If < 1 no gif !
   do_pdf_plot : y           # y -> yes || anything else -> no (no "" but still counted as a string)
-  do_exact_pdf_plot : y
+  do_exact_pdf_plot : 
   do_gif_plot : 
   do_exact_gif_plot :
   gif_time : 1.             # en s 
