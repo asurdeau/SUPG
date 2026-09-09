@@ -95,7 +95,7 @@ def getOneApproximateSolution(params, q_prep=[]):
         q = np.zeros((Nx + 2*nGhost, Ny + 2*nGhost, 3))
     else : 
         q = np.zeros((Nx + 2*nGhost, Ny + 2*nGhost, order, order, 3))
-        evolCoeffs = spatial_operators.get_arbitrar_order_SUPG__weighted_evolution_operator_coeffs(order, dx, dy)
+        evolCoeffs = spatial_operators.get_arbitrar_order_SUPG_weighted_evolution_operator_coeffs(order, dx, dy)
         massCoeffs = spatial_operators.get_arbitrar_order_SUPG_weighted_mass_operator_coeffs(order, dx, dy)
 
     if simulationChoice == 4 :

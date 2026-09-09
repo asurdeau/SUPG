@@ -711,7 +711,7 @@ def extract_operators_improved(dx, dy):
     ### uEq_uTerm : derivée seconde en x et masse en y
     coeffs[0, :] = np.array([-1., 2., -1.]) / dx
     coeffs[1, :] = np.array([1., 4., 1.]) / 6.
-    coeffs[1, :] = np.array([1., 2., 1.]) / 4.
+    # coeffs[1, :] = np.array([1., 2., 1.]) / 4.
 
     ### uEq_vTerm : derivées simples mais diffusion par dx
     coeffs[2, :] = np.array([-1., 0, 1.]) / 2.
@@ -730,7 +730,7 @@ def extract_operators_improved(dx, dy):
 
     ### vEq_vTerm : masse en x et derivée seconde en y
     coeffs[8, :] = np.array([1., 4., 1.]) /  6.
-    coeffs[8, :] = np.array([1., 2., 1.]) / 4.
+    # coeffs[8, :] = np.array([1., 2., 1.]) / 4.
     coeffs[9, :] = np.array([-1., 2., -1.]) / dy
 
     ### vEq_pTerm : masse en x et derivée simple en y
@@ -743,11 +743,11 @@ def extract_operators_improved(dx, dy):
     ### pEq_uTerm : derivée simple en x et masse en y
     coeffs[12, :] = np.array([1., 0, -1.]) / 2. / dx
     coeffs[13, :] = np.array([1., 4., 1.]) / 6.
-    coeffs[13, :] = np.array([1., 2., 1.]) / 4.
+    # coeffs[13, :] = np.array([1., 2., 1.]) / 4.
 
     ### pEq_vTerm : masse en x et derivée simple en y
     coeffs[14, :] = np.array([1., 4., 1.]) / 6.
-    coeffs[14, :] = np.array([1., 2., 1.]) / 4.
+    # coeffs[14, :] = np.array([1., 2., 1.]) / 4.
     coeffs[15, :] = np.array([1., 0, -1.]) / 2. / dy
 
     ### pEq_pTerms
@@ -1004,8 +1004,8 @@ def get_evaluation_of_arbitrar_order_SUPG_weighted_evolution_operator_AND_physic
 
 
     # COMPUTATIONS OF THE Y OPERATORS ON THE STENCIL iMin-1:iMax+1 x jMin:jMax
-    for i in range(iMin-1, iMax+3):
-      for j in range(jMin, jMax+2):
+    for i in range(iMin-1, iMax+2):
+      for j in range(jMin, jMax+1):
         for k in range(order): # compute qtties for all dofs
           for l in range(order): # compute qtties for all dofs
             # U equation
@@ -1048,8 +1048,8 @@ def get_evaluation_of_arbitrar_order_SUPG_weighted_evolution_operator_AND_physic
 
 
     # COMPUTATIONS OF THE Y OPERATORS ON THE STENCIL iMin-1:iMax+1 x jMin:jMax
-    for i in range(iMin, iMax+2):
-      for j in range(jMin, jMax+2):
+    for i in range(iMin, iMax+1):
+      for j in range(jMin, jMax+1):
         for k in range(order): # compute qtties for all dofs
           for l in range(order): # compute qtties for all dofs
             # U equation
@@ -1132,8 +1132,8 @@ def get_evaluation_of_arbitrar_order_SUPG_physical_terms(q, iMin, iMax, jMin, jM
 
 
     # COMPUTATIONS OF THE Y OPERATORS ON THE STENCIL iMin-1:iMax+1 x jMin:jMax
-    for i in range(iMin-1, iMax+3):
-      for j in range(jMin, jMax+2):
+    for i in range(iMin-1, iMax+2):
+      for j in range(jMin, jMax+1):
         for k in range(order): # compute qtties for all dofs
           for l in range(order): # compute qtties for all dofs
             # U equation
@@ -1160,8 +1160,8 @@ def get_evaluation_of_arbitrar_order_SUPG_physical_terms(q, iMin, iMax, jMin, jM
 
 
     # COMPUTATIONS OF THE Y OPERATORS ON THE STENCIL iMin-1:iMax+1 x jMin:jMax
-    for i in range(iMin, iMax+2):
-      for j in range(jMin, jMax+2):
+    for i in range(iMin, iMax+1):
+      for j in range(jMin, jMax+1):
         for k in range(order): # compute qtties for all dofs
           for l in range(order): # compute qtties for all dofs
             # U equation
@@ -1251,8 +1251,8 @@ def get_evaluation_of_arbitrar_order_SUPG_weighted_mass_operator(q, iMin, iMax, 
 
 
     # COMPUTATIONS OF THE Y OPERATORS ON THE STENCIL iMin-1:iMax+1 x jMin:jMax
-    for i in range(iMin-1, iMax+3):
-      for j in range(jMin, jMax+2):
+    for i in range(iMin-1, iMax+2):
+      for j in range(jMin, jMax+1):
         for k in range(order): # compute qtties for all dofs
           for l in range(order): # compute qtties for all dofs
             # U equation
@@ -1293,8 +1293,8 @@ def get_evaluation_of_arbitrar_order_SUPG_weighted_mass_operator(q, iMin, iMax, 
 
 
     # COMPUTATIONS OF THE Y OPERATORS ON THE STENCIL iMin-1:iMax+1 x jMin:jMax
-    for i in range(iMin, iMax+2):
-      for j in range(jMin, jMax+2):
+    for i in range(iMin, iMax+1):
+      for j in range(jMin, jMax+1):
         for k in range(order): # compute qtties for all dofs
           for l in range(order): # compute qtties for all dofs
             # U equation
@@ -1389,17 +1389,17 @@ def getLagElementsStandardOperators(order):
 
 
 # LES OPERATEURS SONT DECOMPOSES EN 3 : UN QUI AGIT EN +1, UN AUTRE EN 0 ET LE DERNIER EN -1
-def get_arbitrar_order_SUPG__weighted_evolution_operator_coeffs(order, dx, dy):
+def get_arbitrar_order_SUPG_weighted_evolution_operator_coeffs(order, dx, dy):
     evolCoeffs = np.zeros((20, 3, order, order), dtype=np.float64)
 
     mass, left_der, right_der, second_der, Id = getLagElementsStandardOperators(order)
 
     # U EQUATION
-    ### uEq_uTerm : derivée seconde en x et masse en y
+    ### uEq_uTerm : dx / 2 * derivée seconde en x et masse en y
     evolCoeffs[0] = 0.5 * second_der / dx
     evolCoeffs[1] = mass
 
-    ### uEq_vTerm : derivées simples mais diffusion par dx
+    ### uEq_vTerm : dx / 2 * derivée simple en x et derivée simple y
     evolCoeffs[2] = 0.5 * left_der
     evolCoeffs[3] = right_der / dy
 
@@ -1408,11 +1408,11 @@ def get_arbitrar_order_SUPG__weighted_evolution_operator_coeffs(order, dx, dy):
     evolCoeffs[5] = mass
 
     # V EQUATION
-    ### vEq_uTerm : derivées simples
+    ### vEq_uTerm : derivée simple en x et dy / 2 * derivée simple y
     evolCoeffs[6] = right_der / dx
     evolCoeffs[7] = 0.5 * left_der
 
-    ### vEq_vTerm : masse en x et derivée seconde en y
+    ### vEq_vTerm : masse en x et dy / 2 * derivée seconde en y
     evolCoeffs[8] = mass
     evolCoeffs[9] = 0.5 * second_der / dy
 

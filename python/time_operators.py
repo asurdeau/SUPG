@@ -114,6 +114,7 @@ def periodize(q, iMin, iMax, jMin, jMax, nGhost):
 
 
 
+@njit
 def getLagInterpPolynCoefs(X):
   N = len(X)
   A = np.zeros((N, N))
@@ -125,10 +126,10 @@ def getLagInterpPolynCoefs(X):
   return coeffMat
 
 
+
+@njit
 def getGLoPoints(nPoints):
 
-  if nPoints == 1:
-    pointsList = np.array([-1.])
   if nPoints == 2:
     pointsList = np.array([-1., 1.])
   if nPoints == 3:
@@ -138,9 +139,11 @@ def getGLoPoints(nPoints):
   if nPoints == 5:
     pointsList = np.array([-1., - np.sqrt(21.) / 7., 0., np.sqrt(21) / 7., 1.])
   
-  return (pointsList + 1.) / 2.
+  return pointsList
 
 
+
+@njit
 def getGLoBasisFunctionsSubIntegrals(nPoints):
   points = getGLoPoints(nPoints)
   coeffMat = getLagInterpPolynCoefs(points)
@@ -152,53 +155,55 @@ def getGLoBasisFunctionsSubIntegrals(nPoints):
 
   vals = coeffMat @ interpPoints
 
-  return vals
+  return 0.5 * vals
 
 
 
 @njit
 def getDecUpdate(q, dt, order, iMin, iMax, jMin, jMax, nGhost, massCoeffs, evolCoeffs):
+    # WATCH OUT : WE HAVE q^{(p), 0} = q AND q^{(0), m} = q
 
     P = order
     M = int((P+1.) / 2)
     # INITIALISATION DES VARIABLES : TOUS LES q 
     shape = np.shape(q)
-    q_current_stage = np.zeros(shape + (M,))
-    weighted_evolved_q_first_stage = np.zeros(shape)
-    first_stage_time_weights_sums = np.zeros(M)
-    weighted_evolved_q_m_current_stage = np.zeros(shape + (P-1,))
+    q_current_stage = np.zeros(shape + (M+1,))
+    first_stage_time_weights_sums = np.zeros(M+1)
+    weighted_evolved_q_m_current_stage = np.zeros(shape + (M+1,))
     weighted_sum_of_weighted_evolved_q_m_current_stage = np.zeros(shape)
-    weighted_massed_current_stage_differences = np.zeros(shape + (P-1,))
+    weighted_massed_current_stage_differences = np.zeros(shape + (M+1,))
     last_weighted_massed_current_stage_differences = np.zeros(shape)
-    q_next_stage = np.zeros(shape + (M,))
-    q_updated = np.zeros(shape)
+    q_next_stage = np.zeros(shape + (M+1,))
 
     # TIME WEIGHTS theta^m_r
-    theta = getGLoBasisFunctionsSubIntegrals(M)
+    theta = getGLoBasisFunctionsSubIntegrals(M+1)
 
-    # INITIAL STAGE : q^{(0), m} = q_n
-    for m in range(M):
-        q_current_stage[:, :, :, :, :, m] = q
+    # INITIAL STAGE : q^{(0), m} = q_n : so we do nothing
+    # PLUS : We have q^{(P), 0} = q_n
+    q_current_stage[:, :, :, :, :, 0] = q    # We have q^{(P), 0} = q_n
+    weighted_evolved_q_m_current_stage[:, :, :, :, :, 0] = get_evaluation_of_arbitrar_order_SUPG_weighted_evolution_operator(q_current_stage[:, :, :, :, :, 0], iMin, iMax, jMin, jMax, order, evolCoeffs)
 
 
-    # FIRST STAGE : EASY TO COMPUTE : NO NEED OF THE MASS STILL
-    for m in range(M):
+    # # FIRST STAGE : EASY TO COMPUTE : STILL NO NEED OF THE MASS
+    for m in range(1, M+1):
       first_stage_time_weights_sums[m] =  np.sum(theta[:, m])
-    weighted_evolved_q_first_stage = get_evaluation_of_arbitrar_order_SUPG_weighted_evolution_operator(q, iMin, iMax, jMin, jMax, order, evolCoeffs)
 
     for i in range(iMin, iMax+1):
       for j in range(jMin, jMax+1):
         for k in range(order):
           for l in range(order):
             for var in range(3):
-              for m in range(M):
-                q_next_stage[i, j, k, l, var, m] = q[i, j, k, l, var] - dt * first_stage_time_weights_sums[m] * weighted_evolved_q_first_stage[i, j, k, l, var]
+              for m in range(1, M+1):
+                q_next_stage[i, j, k, l, var, m] = q[i, j, k, l, var] - dt * first_stage_time_weights_sums[m] * weighted_evolved_q_m_current_stage[i, j, k, l, var, 0]
 
-    periodize(q_next_stage, iMin, iMax, jMin, jMax, nGhost)
-    q_current_stage = q_next_stage.copy()
+    q_next_stage[:, :, :, :, :, 1:] = periodize(q_next_stage[:, :, :, :, :, 1:], iMin, iMax, jMin, jMax, nGhost)
+    q_current_stage[:, :, :, :, :, 1:] = q_next_stage[:, :, :, :, :, 1:].copy()
 
+
+
+    # INTERMEDIATE STAGES
     for p in range(2, P):
-      for m in range(M):
+      for m in range(1, M+1):
         weighted_evolved_q_m_current_stage[:, :, :, :, :, m] = get_evaluation_of_arbitrar_order_SUPG_weighted_evolution_operator(q_current_stage[:, :, :, :, :, m], iMin, iMax, jMin, jMax, order, evolCoeffs)
         weighted_massed_current_stage_differences[:, :, :, :, :, m] = get_evaluation_of_arbitrar_order_SUPG_weighted_mass_operator(q_current_stage[:, :, :, :, :, m] - q, iMin, iMax, jMin, jMax, order, massCoeffs)
 
@@ -207,31 +212,25 @@ def getDecUpdate(q, dt, order, iMin, iMax, jMin, jMax, nGhost, massCoeffs, evolC
           for k in range(order):
             for l in range(order):
               for var in range(3):
-                for m in range(M):
+                for m in range(1, M+1):
                   weighted_sum_of_weighted_evolved_q_m_current_stage[i, j, k, l, var] = theta[0, m] * weighted_evolved_q_m_current_stage[i, j, k, l, var, 0]
-                  for r in range(1, M):
+                  for r in range(1, M+1):
                     weighted_sum_of_weighted_evolved_q_m_current_stage[i, j, k, l, var] += theta[r, m] * weighted_evolved_q_m_current_stage[i, j, k, l, var, r]
 
                   q_next_stage[i, j, k, l, var, m] = q_current_stage[i, j, k, l, var, m] \
                                                       - weighted_massed_current_stage_differences[i, j, k, l, var, m] \
                                                       - dt * weighted_sum_of_weighted_evolved_q_m_current_stage[i, j, k, l, var]
-
       
-      periodize(q_next_stage, iMin, iMax, jMin, jMax, nGhost)
-      q_current_stage = q_next_stage.copy()
-    
-       
-    # WATCH OUT : WE NEED TO APPLY THE BC EACH TIME
-
-
-
+      q_next_stage[:, :, :, :, :, 1:] = periodize(q_next_stage[:, :, :, :, :, 1:], iMin, iMax, jMin, jMax, nGhost)
+      q_current_stage[:, :, :, :, :, 1:] = q_next_stage[:, :, :, :, :, 1:].copy()
+  
 
 
     # LAST STAGE P : ONLY COMPUTE q^{(P), M}
-    for m in range(M):
+    for m in range(1, M+1):
       weighted_evolved_q_m_current_stage[:, :, :, :, :, m] = get_evaluation_of_arbitrar_order_SUPG_weighted_evolution_operator(q_current_stage[:, :, :, :, :, m], iMin, iMax, jMin, jMax, order, evolCoeffs)
 
-    last_weighted_massed_current_stage_differences[:, :, :, :, :] = get_evaluation_of_arbitrar_order_SUPG_weighted_mass_operator(q_current_stage[:, :, :, :, :, m] - q, iMin, iMax, jMin, jMax, order, massCoeffs)
+    last_weighted_massed_current_stage_differences = get_evaluation_of_arbitrar_order_SUPG_weighted_mass_operator(q_current_stage[:, :, :, :, :, M] - q, iMin, iMax, jMin, jMax, order, massCoeffs)
 
     for i in range(iMin, iMax+1):
       for j in range(jMin, jMax+1):
@@ -239,11 +238,14 @@ def getDecUpdate(q, dt, order, iMin, iMax, jMin, jMax, nGhost, massCoeffs, evolC
           for l in range(order):
             for var in range(3):
               weighted_sum_of_weighted_evolved_q_m_current_stage[i, j, k, l, var] = theta[0, M] * weighted_evolved_q_m_current_stage[i, j, k, l, var, 0]
-              for r in range(1, M):
+              for r in range(1, M+1):
                 weighted_sum_of_weighted_evolved_q_m_current_stage[i, j, k, l, var] += theta[r, M] * weighted_evolved_q_m_current_stage[i, j, k, l, var, r]
 
-              q_updated[i, j, k, l, var] = q_current_stage[i, j, k, l, var, M] \
+              q_next_stage[i, j, k, l, var, M] = q_current_stage[i, j, k, l, var, M] \
                                             - last_weighted_massed_current_stage_differences[i, j, k, l, var] \
                                             - dt * weighted_sum_of_weighted_evolved_q_m_current_stage[i, j, k, l, var]
 
-    return q_updated
+
+    q_next_stage[:, :, :, :, :, M] = periodize(q_next_stage[:, :, :, :, :, M], iMin, iMax, jMin, jMax, nGhost)
+
+    return q_next_stage[:, :, :, :, :, M]

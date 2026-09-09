@@ -17,7 +17,7 @@ import grid_mod
 import spatial_operators
 # from plots import makePlots, openGifWriters, closeGifWriters
 import solutions
-from python.spatial_operators import getApproxDivFlux, get_evaluation_of_arbitrar_order_SUPG_weighted_evolution_operator, get_arbitrar_order_SUPG_evolution_operator_coeffs
+from spatial_operators import getApproxDivFlux, get_evaluation_of_arbitrar_order_SUPG_weighted_evolution_operator, get_arbitrar_order_SUPG_weighted_evolution_operator_coeffs
 from plots import getVisualisationData
 
 
@@ -230,6 +230,66 @@ def third_component_operations_errors(q, iMin, iMax, jMin, jMax, dx, dy, x_der, 
 
 
 
+
+
+####################################################################################################################
+
+#                                            COMPARAISON AVEC L'ORDRE 1                                            #
+
+####################################################################################################################
+
+
+
+
+
+if (True) :
+# if (False) :
+    xL, xR, yL, yR = 0., 1., 0., 1.
+    Nx, Ny = 100, 100
+    nGhost = 2
+    order = 1
+
+    iMin, iMax, jMin, jMax = nGhost, Nx + nGhost - 1, nGhost, Ny + nGhost - 1
+    dx, dy = (xR - xL) / (1. * Nx), (yR - yL) / (1. * Ny)
+
+    coeffs = spatial_operators.extract_operators_improved(dx, dy)
+    evolCoeffs = spatial_operators.get_arbitrar_order_SUPG_weighted_evolution_operator_coeffs(order, dx, dy)
+
+    n1, n2 = -3, 3
+    rng = np.random.default_rng()
+    random_abs = np.exp(- ((n2 - n1) * rng.binomial(n=1, p=0.5, size=((Nx + 2*nGhost, Ny + 2* nGhost, 3))) + n1) * np.log(10.) )
+    random_sign = rng.random((Nx + 2*nGhost, Ny + 2* nGhost, 3))
+
+    q_test = random_abs * random_sign
+
+    # var = XVEL
+    # q_order_0 = np.zeros((Nx + 2 * nGhost, Ny + 2* nGhost, 3))
+    # q_order_0[:, :, var] = q_test[:, :, var].copy()
+    # q_order_1 = np.zeros((Nx + 2 * nGhost, Ny + 2* nGhost, order, order, 3))
+    # q_order_1[:, :, 0, 0, var] = q_test[:, :, var].copy()
+
+
+    q_order_0 = np.zeros((Nx + 2 * nGhost, Ny + 2* nGhost, 3))
+    q_order_0 = q_test.copy()
+    q_order_1 = np.zeros((Nx + 2 * nGhost, Ny + 2* nGhost, order, order, 3))
+    q_order_1[:, :, 0, 0] = q_test.copy()
+
+    print("test mêmes qttés de départ : ", np.max(abs(q_order_0 - q_order_1[:, :, 0, 0, :])))
+
+    divF_order0 = spatial_operators.get_optim_modif_SUPG_developped_divFlux(q_order_0, iMin, iMax, jMin, jMax, coeffs)
+    divF_order1 = spatial_operators.get_evaluation_of_arbitrar_order_SUPG_weighted_evolution_operator(q_order_1, iMin, iMax, jMin, jMax, order, evolCoeffs)
+
+    # comparaison entre les deux versions 
+    print("comparaisons ordres 0 et 1 : 1e comp : ", np.max(abs(divF_order0[iMin:iMax+1, jMin:jMax+1, XVEL] - divF_order1[iMin:iMax+1, jMin:jMax+1, 0, 0, XVEL])) )
+    print("comparaisons ordres 0 et 1 : 2e comp : ", np.max(abs(divF_order0[iMin:iMax+1, jMin:jMax+1, YVEL] - divF_order1[iMin:iMax+1, jMin:jMax+1, 0, 0, YVEL])) )
+    print("comparaisons ordres 0 et 1 : 3e comp : ", np.max(abs(divF_order0[iMin:iMax+1, jMin:jMax+1, PRES] - divF_order1[iMin:iMax+1, jMin:jMax+1, 0, 0, PRES])) )
+
+
+
+
+
+
+
 ####################################################################################################################
 
 #                                               INDIVIDUAL TESTS                                                   #
@@ -238,8 +298,8 @@ def third_component_operations_errors(q, iMin, iMax, jMin, jMax, dx, dy, x_der, 
 
 
 
-if (True) :
-# if (False) :
+# if (True) :
+if (False) :
     # Creation of the grid_parameters dictionnary by hand
     xL, xR = 0., 1.
     yL, yR = 0., 1.
@@ -488,7 +548,7 @@ if (True) :
 
 
 # if (True) :
-# if (False) :
+if (False) :
     # Creation of the grid_parameters dictionnary by hand
     xL, xR = 0., 1.
     yL, yR = 0., 1.

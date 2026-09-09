@@ -94,8 +94,8 @@ def getSolution(t, X, Y, simulationChoice, solParams):
 
         # draw of uniform matrices for the absolute values and for the sign
         rng = np.random.default_rng()
-        random_abs = np.exp(- ((n2 - n1) * rng.binomial(n=1, p=0.5, size=(np.shape(X) + (3,))) + n1) * np.log(10.) )
-        random_sign = rng.random(np.shape(X) + (3,))
+        random_abs = np.exp(- ((n2 - n1) * rng.random(np.shape(X) + (3,)) + n1) * np.log(10.) )
+        random_sign = 2. * rng.binomial(n=1, p=0.5, size=(np.shape(X) + (3,))) - 1.
 
         q = random_abs * random_sign
         return q
