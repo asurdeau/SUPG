@@ -154,6 +154,7 @@ def getVisualisationGrid(params):
 
 def makeSolutionsPlots(X, Y, q, q_prep, time, i_obs, params, h, pdf_writers, gif_writers):
     simulationChoice = params["simulation_choice"]
+    order = params["order"]
 
     # Plot ou non de la solution exacte
     do_exact_pdf_plot = False
@@ -168,17 +169,22 @@ def makeSolutionsPlots(X, Y, q, q_prep, time, i_obs, params, h, pdf_writers, gif
 
     do_exact_plot = len(q_exact) > 0
 
+    q_vis = q
+    if order > 0 :
+        q_vis = getVisualisationData(q, params)
+
+
     if (i_obs == 1):
-        makeSolutions1DPlots(X, Y, q, do_exact_plot, q_exact, time, params, h, pdf_writers["1D"], gif_writers["1D"])
+        makeSolutions1DPlots(X, Y, q_vis, do_exact_plot, q_exact, time, params, h, pdf_writers["1D"], gif_writers["1D"])
 
     if (i_obs == 2):
         if (simulationChoice == 4 or simulationChoice == 5):
-            perturbedSolution2DPlots(X, Y, q, q_prep, time, params, h, pdf_writers["2D"], gif_writers["2D"])
+            perturbedSolution2DPlots(X, Y, q_vis, q_prep, time, params, h, pdf_writers["2D"], gif_writers["2D"])
         else :
-            makeSolutions2DPlots(X, Y, q, do_exact_plot, q_exact, time, params, h, pdf_writers["2D"], gif_writers["2D"])
+            makeSolutions2DPlots(X, Y, q_vis, do_exact_plot, q_exact, time, params, h, pdf_writers["2D"], gif_writers["2D"])
 
     if (i_obs == 3):
-        makeSolutions2DDiffNormPlots(X, Y, q, q_exact, time, params, h, pdf_writers["2D_diff"], gif_writers["2D_diff"])
+        makeSolutions2DDiffNormPlots(X, Y, q_vis, q_exact, time, params, h, pdf_writers["2D_diff"], gif_writers["2D_diff"])
 
 
 
@@ -636,24 +642,9 @@ def makeObservableTablePlots(i_obs, iterations_of_obs_table, observableTable, pa
     same_plot = params["plot_parameters"]["same_plot"]
     finalTime, CFL = params["time_parameters"].values()
 
-    # if (i_obs == [4]): # norms 
-    #     firstIteration = 0
-    #     lastIteration = lastCompletedIteration
-    # elif (i_obs == [5]): # errors : no computation for initial datum
-    #     firstIteration = 1
-    #     lastIteration = lastCompletedIteration
-    # elif (i_obs == [6]): # total masses
-    #     firstIteration = 0
-    #     lastIteration = lastCompletedIteration
-    # elif (i_obs == [7]): # divU
-    #     firstIteration = 0
-    #     lastIteration = lastCompletedIteration
-
     obs_name, obs_short = getObsKeys(i_obs)
 
-    obsNumber = len(iterations_of_obs_table)
-    # iterations_of_obs_table = np.arange(firstIteration, lastIteration+1)
-    # observableTable = observableTable[firstIteration : lastIteration+1]
+    obsNumber = len(iterations_of_obs_table)    
 
     if i_obs == [7] :
         with PdfPages(f"{plot_loc}{simul_short}{scheme_short}{obs_short}h{round(h, 5)}_CFL{CFL}.pdf") as pdf:
@@ -811,7 +802,6 @@ def getEvaluationOfBasisPolynomials(N, nVis):
 
 def getVisualisationData(q, params):
     Nx, Ny, nGhost = params["grid_parameters"]["mesh_parameters"].values()
-    xL, xR, yL, yR = params["grid_parameters"]["domain_parameters"].values()
     order = params["order"]
     nVis = params["number_visualisation_points"]
 

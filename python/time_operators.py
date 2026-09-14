@@ -183,8 +183,12 @@ def getDecUpdate(q, dt, order, iMin, iMax, jMin, jMax, nGhost, massCoeffs, evolC
     q_current_stage[:, :, :, :, :, 0] = q    # We have q^{(P), 0} = q_n
     weighted_evolved_q_m_current_stage[:, :, :, :, :, 0] = get_evaluation_of_arbitrar_order_SUPG_weighted_evolution_operator(q_current_stage[:, :, :, :, :, 0], iMin, iMax, jMin, jMax, order, evolCoeffs)
 
-
-    # # FIRST STAGE : EASY TO COMPUTE : STILL NO NEED OF THE MASS
+    if order == 1 :
+      q_next_stage[:, :, :, :, :, M] = q - dt * weighted_evolved_q_m_current_stage[:, :, :, :, :, 0]
+      q_next_stage[:, :, :, :, :, M] = periodize(q_next_stage[:, :, :, :, :, M], iMin, iMax, jMin, jMax, nGhost)
+      return q_next_stage[:, :, :, :, :, M]
+    
+    # FIRST STAGE : EASY TO COMPUTE : STILL NO NEED OF THE MASS
     for m in range(1, M+1):
       first_stage_time_weights_sums[m] =  np.sum(theta[:, m])
 

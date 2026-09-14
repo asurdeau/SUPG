@@ -711,7 +711,7 @@ def extract_operators_improved(dx, dy):
     ### uEq_uTerm : derivée seconde en x et masse en y
     coeffs[0, :] = np.array([-1., 2., -1.]) / dx
     coeffs[1, :] = np.array([1., 4., 1.]) / 6.
-    # coeffs[1, :] = np.array([1., 2., 1.]) / 4.
+    coeffs[1, :] = np.array([1., 2., 1.]) / 4.
 
     ### uEq_vTerm : derivées simples mais diffusion par dx
     coeffs[2, :] = np.array([-1., 0, 1.]) / 2.
@@ -730,7 +730,7 @@ def extract_operators_improved(dx, dy):
 
     ### vEq_vTerm : masse en x et derivée seconde en y
     coeffs[8, :] = np.array([1., 4., 1.]) /  6.
-    # coeffs[8, :] = np.array([1., 2., 1.]) / 4.
+    coeffs[8, :] = np.array([1., 2., 1.]) / 4.
     coeffs[9, :] = np.array([-1., 2., -1.]) / dy
 
     ### vEq_pTerm : masse en x et derivée simple en y
@@ -743,11 +743,11 @@ def extract_operators_improved(dx, dy):
     ### pEq_uTerm : derivée simple en x et masse en y
     coeffs[12, :] = np.array([1., 0, -1.]) / 2. / dx
     coeffs[13, :] = np.array([1., 4., 1.]) / 6.
-    # coeffs[13, :] = np.array([1., 2., 1.]) / 4.
+    coeffs[13, :] = np.array([1., 2., 1.]) / 4.
 
     ### pEq_vTerm : masse en x et derivée simple en y
     coeffs[14, :] = np.array([1., 4., 1.]) / 6.
-    # coeffs[14, :] = np.array([1., 2., 1.]) / 4.
+    coeffs[14, :] = np.array([1., 2., 1.]) / 4.
     coeffs[15, :] = np.array([1., 0, -1.]) / 2. / dy
 
     ### pEq_pTerms
@@ -1243,7 +1243,7 @@ def get_evaluation_of_arbitrar_order_SUPG_weighted_mass_operator(q, iMin, iMax, 
 
 
     
-    divF = np.zeros((np.shape(q)))
+    mass_q = np.zeros((np.shape(q)))
     # INTERMEDIATE QUANTITIES
     shape = np.shape(q)[:-1]
     uEq_uTerm_yOp, uEq_vTerm_yOp, uEq_pTerm_yOp, vEq_uTerm_yOp, vEq_vTerm_yOp, vEq_pTerm_yOp, \
@@ -1334,15 +1334,11 @@ def get_evaluation_of_arbitrar_order_SUPG_weighted_mass_operator(q, iMin, iMax, 
 
 
             ### ASSEMBLING
-            # divF[i, j, k, l, XVEL] = uEq_uTerm_ijkl + uEq_vTerm_ijkl + uEq_pTerm_ijkl
-            # divF[i, j, k, l, YVEL] = vEq_uTerm_ijkl + vEq_vTerm_ijkl + vEq_pTerm_ijkl
-            # divF[i, j, k, l, PRES] = pEq_uTerm_ijkl + pEq_vTerm_ijkl + pEq_pTerm_ijkl
+            mass_q[i, j, k, l, XVEL] = uEq_uTerm_ijkl + uEq_pTerm_ijkl
+            mass_q[i, j, k, l, YVEL] = vEq_vTerm_ijkl + vEq_pTerm_ijkl
+            mass_q[i, j, k, l, PRES] = pEq_uTerm_ijkl + pEq_vTerm_ijkl + pEq_pTerm_ijkl
 
-            divF[i, j, k, l, XVEL] = uEq_uTerm_ijkl + uEq_pTerm_ijkl
-            divF[i, j, k, l, YVEL] = vEq_vTerm_ijkl + vEq_pTerm_ijkl
-            divF[i, j, k, l, PRES] = pEq_uTerm_ijkl + pEq_vTerm_ijkl + pEq_pTerm_ijkl
-
-    return divF
+    return mass_q
 
 
 
@@ -1448,10 +1444,10 @@ def get_arbitrar_order_SUPG_weighted_evolution_operator_coeffs(order, dx, dy):
 
 
 # LES OPERATEURS SONT DECOMPOSES EN 3 : UN QUI AGIT EN +1, UN AUTRE EN 0 ET LE DERNIER EN -1
-def get_arbitrar_order_SUPG_weighted_mass_operator_coeffs(order, dx, dy):
-    massCoeffs = np.zeros((18, 3, order, order), dtype=np.float64)
+def get_arbitrar_order_SUPG_weighted_mass_operator_coeffs(order):
+    massCoeffs = np.zeros((18, 3, order, order))
 
-    mass, left_der, right_der, second_der, Id = getLagElementsStandardOperators(order)
+    mass, left_der = getLagElementsStandardOperators(order)[0:2]
 
     # U EQUATION
     ### uEq_uTerm : masses
@@ -1477,16 +1473,16 @@ def get_arbitrar_order_SUPG_weighted_mass_operator_coeffs(order, dx, dy):
 
     ### vEq_pTerm : masse en x et derivée simple en y
     massCoeffs[10] = mass
-    massCoeffs[11] = 0.5 * right_der
+    massCoeffs[11] = 0.5 * left_der
 
     # P EQUATION
     ### pEq_uTerm : derivée simple en x et masse en y
-    massCoeffs[12] = 0.5 * right_der
+    massCoeffs[12] = 0.5 * left_der
     massCoeffs[13] = mass
 
     ### pEq_vTerm : masse en x et derivée simple en y
     massCoeffs[14] = mass
-    massCoeffs[15] = 0.5 * right_der
+    massCoeffs[15] = 0.5 * left_der
 
     ### pEq_pTerm
     massCoeffs[16] = mass

@@ -83,7 +83,7 @@ def getSolution(t, X, Y, simulationChoice, solParams):
 
 
     elif simulationChoice == 3 : # 3 : stationary vortex
-            return getVortexSolution(X, Y, solParams)
+        return getVortexSolution(X, Y, solParams)
 
 
 

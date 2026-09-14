@@ -12,7 +12,7 @@ grid_parameters :
 
 
 time_parameters : 
-  end_time : 100.0
+  end_time : 100.
   CFL_number : 0.45
 
 
@@ -26,7 +26,7 @@ scheme_choice : 4      # 1 : CLASSICAL FV UPWIND || 2 : LUMPED SUPG || 3 : "À l
 
 
 
-observables_choices : [2, 7]                # 1: 1d Plots of solutions || 2: 2d Plots of solutions || 3: 2d Plots of norm of the difference
+observables_choices : [7]                # 1: 1d Plots of solutions || 2: 2d Plots of solutions || 3: 2d Plots of norm of the difference
                                          # 4: norms of the approx sol || 5: Errors w/ exact || 6: total mass || 7: Physical Terms
                                          # 8: CV tests || 9: series of tests ||
 
@@ -78,4 +78,4 @@ plot_parameters :
 
 # HIGHER ORDER PARAMETERS
 order : 0
-number_visualisation_points : 5
+number_visualisation_points : 2

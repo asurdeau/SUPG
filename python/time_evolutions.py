@@ -96,7 +96,7 @@ def getOneApproximateSolution(params, q_prep=[]):
     else : 
         q = np.zeros((Nx + 2*nGhost, Ny + 2*nGhost, order, order, 3))
         evolCoeffs = spatial_operators.get_arbitrar_order_SUPG_weighted_evolution_operator_coeffs(order, dx, dy)
-        massCoeffs = spatial_operators.get_arbitrar_order_SUPG_weighted_mass_operator_coeffs(order, dx, dy)
+        massCoeffs = spatial_operators.get_arbitrar_order_SUPG_weighted_mass_operator_coeffs(order)
 
     if simulationChoice == 4 :
         q_prep = solutions.getSolution(currentTime, X, Y, simulationChoice, params["solution_parameters"])
@@ -118,6 +118,11 @@ def getOneApproximateSolution(params, q_prep=[]):
         print("test periodicité donnée initiale : ", gridOp.isPeriodic(q))
 
 
+    # # TEST ORDER 1:
+    # params_order1 = params.copy()
+    # q_order1 = q[:, :, 0, 0]
+
+
 
     if (any(np.array(i_obs_list) == 7)):
         physicalTerms = np.zeros_like(q)
@@ -126,9 +131,12 @@ def getOneApproximateSolution(params, q_prep=[]):
 
     
     ### initial observables
+    axes = (0, 1)
+    if order > 0 :
+        axes = (0, 1, 2, 3)
     pdf_writers, gif_writers, doPlot, do_gif_plot, nbPlotsDone, timeBetweenPlots, Xvis, Yvis, \
         obs_tables_step, iterations_of_obs_table, normsTable, errorsTable, massesTable, physicalTermsNormsTable = \
-        getInitialObservables(q, q_prep, finalTime, dt_apriori, gridOp, params, simulationChoice, do_obs_table, nbPlots)
+        getInitialObservables(q, q_prep, finalTime, dt_apriori, gridOp, params, simulationChoice, do_obs_table, nbPlots, axes)
 
     #############################################################################################################
 
@@ -160,7 +168,7 @@ def getOneApproximateSolution(params, q_prep=[]):
                 doPlot, nbPlotsDone, iterations_of_obs_table, normsTable, errorsTable, massesTable, physicalTermsNormsTable \
                     = getIntermediateObservables(q, q_prep, physicalTerms, currentTime, finalTime, lastCompletedIteration, X, Y, h, dx, dy, iMin, iMax, jMin, jMax, \
                                                 params, do_obs_table, Xvis, Yvis, pdf_writers, gif_writers, doPlot, nbPlotsDone, do_pdf_plot, do_gif_plot, \
-                                                obs_tables_step, iterations_of_obs_table, normsTable, errorsTable, massesTable, physicalTermsNormsTable)
+                                                obs_tables_step, iterations_of_obs_table, axes, normsTable, errorsTable, massesTable, physicalTermsNormsTable)
                 
         else : 
             while (abs(currentTime - finalTime) > 1.e-10) :
@@ -187,7 +195,7 @@ def getOneApproximateSolution(params, q_prep=[]):
                 doPlot, nbPlotsDone, iterations_of_obs_table, normsTable, errorsTable, massesTable, physicalTermsNormsTable \
                     = getIntermediateObservables(q, q_prep, physicalTerms, currentTime, finalTime, lastCompletedIteration, X, Y, h, dx, dy, iMin, iMax, jMin, jMax, \
                                                 params, do_obs_table, Xvis, Yvis, pdf_writers, gif_writers, doPlot, nbPlotsDone, do_pdf_plot, do_gif_plot, \
-                                                obs_tables_step, iterations_of_obs_table, normsTable, errorsTable, massesTable, physicalTermsNormsTable)
+                                                obs_tables_step, iterations_of_obs_table, axes, normsTable, errorsTable, massesTable, physicalTermsNormsTable)
 
 
     else :          # ARBITRAR ORDER SIMULATION
@@ -212,7 +220,7 @@ def getOneApproximateSolution(params, q_prep=[]):
                 doPlot, nbPlotsDone, iterations_of_obs_table, normsTable, errorsTable, massesTable, physicalTermsNormsTable \
                     = getIntermediateObservables(q, q_prep, physicalTerms, currentTime, finalTime, lastCompletedIteration, X, Y, h, dx, dy, iMin, iMax, jMin, jMax, \
                                                 params, do_obs_table, Xvis, Yvis, pdf_writers, gif_writers, doPlot, nbPlotsDone, do_pdf_plot, do_gif_plot, \
-                                                obs_tables_step, iterations_of_obs_table, normsTable, errorsTable, massesTable, physicalTermsNormsTable)
+                                                obs_tables_step, iterations_of_obs_table, axes, normsTable, errorsTable, massesTable, physicalTermsNormsTable)
             
         else : 
             while (abs(currentTime - finalTime) > 1.e-10) :
@@ -223,6 +231,10 @@ def getOneApproximateSolution(params, q_prep=[]):
                 # MISE A JOUR
                 currentIteration += 1
                 q = time_operators.getDecUpdate(q, dt, order, iMin, iMax, jMin, jMax, nGhost, massCoeffs, evolCoeffs)
+                # q_order1 = time_operators.getForwardEulerUpdate(q_order1, dt, gridOp, iMin, iMax, jMin, jMax, dx, dy, schemeChoice, simulationChoice, operatorsCoeff, \
+                #                                         divFluxTimeTable, updateTimeTable, currentIteration)
+
+                # print("ecart solutions : ", np.max(abs(q[:, :, 0, 0] - q_order1)))
         
                 lastCompletedIteration += 1
         
@@ -230,7 +242,7 @@ def getOneApproximateSolution(params, q_prep=[]):
                 doPlot, nbPlotsDone, iterations_of_obs_table, normsTable, errorsTable, massesTable, physicalTermsNormsTable \
                     = getIntermediateObservables(q, q_prep, physicalTerms, currentTime, finalTime, lastCompletedIteration, X, Y, h, dx, dy, iMin, iMax, jMin, jMax, \
                                                 params, do_obs_table, Xvis, Yvis, pdf_writers, gif_writers, doPlot, nbPlotsDone, do_pdf_plot, do_gif_plot, \
-                                                obs_tables_step, iterations_of_obs_table, normsTable, errorsTable, massesTable, physicalTermsNormsTable)
+                                                obs_tables_step, iterations_of_obs_table, axes, normsTable, errorsTable, massesTable, physicalTermsNormsTable)
                                
     #############################################################################################################
 
@@ -413,7 +425,7 @@ def getAdaptedTimeUpdate(dt_apriori, currentTime, finalTime, do_obs_table, nbPlo
 
 
 
-def getInitialObservables(q, q_prep, finalTime, dt_apriori, grid, params, simulationChoice, do_obs_table, nbPlots):
+def getInitialObservables(q, q_prep, finalTime, dt_apriori, grid, params, simulationChoice, do_obs_table, nbPlots, axes):
     
     iMin, iMax, jMin, jMax = grid.valid_grid
     dx, dy = grid.steps
@@ -446,6 +458,8 @@ def getInitialObservables(q, q_prep, finalTime, dt_apriori, grid, params, simula
             obs_tables_step = 1
         else :
             obs_tables_step = int(a_priori_nb_iter / 400)
+
+        # obs_tables_step = 1
 
         print("obs_tables_step : \n ", obs_tables_step)
 
@@ -484,18 +498,14 @@ def getInitialObservables(q, q_prep, finalTime, dt_apriori, grid, params, simula
 
 
     if (do_obs_table[4]): # Sup norm of the solution (stability purposes)
-        # normsTable = (-1.) * np.ones((a_priori_nb_iter_margin, 3))
-        # normsTable[0] = np.max(abs(q[iMin:iMax+2, jMin:jMax+2]), axis=(0, 1))
-        normsTable.append(np.max(abs(q[iMin:iMax+2, jMin:jMax+2]), axis=(0, 1)))
+        normsTable.append(np.max(abs(q[iMin:iMax+2, jMin:jMax+2]), axis=axes))
     
     if (do_obs_table[5]): # Sup errors (consistency / convergence purposes) 1st ELEMENT ...[0] UNUSED !!!!
-        # errorsTable = (-1.) * np.ones((a_priori_nb_iter_margin, 3)) 
         errorsTable.append(np.array([np.nan, np.nan, np.nan]))
 
     if (do_obs_table[6]): # total masses
-        # massesTable = (-1.) * np.ones((a_priori_nb_iter_margin, 3))
-        # massesTable[0] = dx * dy * np.sum(q[iMin:iMax+1, jMin:jMax+1], axis=(0, 1))
-        massesTable.append(dx * dy * np.sum(q[iMin:iMax+1, jMin:jMax+1], axis=(0, 1)))
+        order = params["order"]
+        massesTable.append(dx * dy * np.sum(q[iMin:iMax+1, jMin:jMax+1], axis=axes)) / max(1, order) ** 2
 
     # if (do_obs_table[7]): # DivU
     #     physicalTermsNormsTable = (-1.) * np.ones((a_priori_nb_iter_margin, 2), order="F")
@@ -509,7 +519,7 @@ def getInitialObservables(q, q_prep, finalTime, dt_apriori, grid, params, simula
 
 def getIntermediateObservables(q, q_prep, physicalTerms, currentTime, finalTime, lastCompletedIteration, X, Y, h, dx, dy, iMin, iMax, jMin, jMax, \
                                params, do_obs_table, Xvis, Yvis, pdf_writers, gif_writers, doPlot, nbPlotsDone, do_pdf_plot, do_gif_plot, \
-                               obs_tables_step, iterations_of_obs_table, normsTable, errorsTable, massesTable, physicalTermsNormsTable):
+                               obs_tables_step, iterations_of_obs_table, axes, normsTable, errorsTable, massesTable, physicalTermsNormsTable):
 
     if any(do_obs_table[1:4]) :
         if (doPlot and (do_pdf_plot or do_gif_plot)) :
@@ -539,14 +549,14 @@ def getIntermediateObservables(q, q_prep, physicalTerms, currentTime, finalTime,
             iterations_of_obs_table.append(lastCompletedIteration)
 
     if (do_obs_table[4] and addObservation): # Sup norm of the solution (stability purposes)
-        normsTable.append(np.max(abs(q[iMin:iMax+2, jMin:jMax+2]), axis=(0, 1)))
+        normsTable.append(np.max(abs(q[iMin:iMax+2, jMin:jMax+2]), axis=axes))
     
     if (do_obs_table[5] and addObservation): # Sup errors (consistency / convergence purposes) 
         q_exact = solutions.getSolution(currentTime, X, Y, params["simulation_choice"], params["solution_parameters"])
-        errorsTable.append(np.max(abs(q[iMin:iMax+2, jMin:jMax+2] - q_exact), axis=(0, 1)))
+        errorsTable.append(np.max(abs(q[iMin:iMax+2, jMin:jMax+2] - q_exact), axis=axes))
 
     if (do_obs_table[6] and addObservation): # total masses
-        massesTable.append(dx * dy * np.sum(q[iMin:iMax+1, jMin:jMax+1], axis=(0, 1)))
+        massesTable.append(dx * dy * np.sum(q[iMin:iMax+1, jMin:jMax+1], axis=axes))
     
     if (do_obs_table[7] and addPhysicalTermsObservation): # grad P and div U
         physicalTermsNormsTable.append(np.array([np.max(abs(physicalTerms[iMin:iMax+2, jMin:jMax+2, :-1])), np.max(abs(physicalTerms[iMin:iMax+2, jMin:jMax+2, -1]))]))
