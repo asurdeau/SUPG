@@ -13,7 +13,7 @@ class gridOperator:
     def __init__(self, params):
         Nx, Ny, nGhost = params["grid_parameters"]["mesh_parameters"].values()
         xL, xR, yL, yR = params["grid_parameters"]["domain_parameters"].values()
-        order = params["order"]
+        spacePolynOrder = params["order"]["space_polyn_order"]
 
         self.valid_grid = nGhost, Nx + nGhost - 1, nGhost, Ny + nGhost - 1
 
@@ -28,17 +28,17 @@ class gridOperator:
 
         X, Y = np.meshgrid(xCoord, yCoord, indexing="ij")
 
-        if order == 0 :
+        if spacePolynOrder == 0 :
             self.xValidGrid = X
             self.yValidGrid = Y
 
         else :
-            X_HO, Y_HO = np.zeros( ((2, ) + np.shape(X) + (order, order,)) )
+            X_HO, Y_HO = np.zeros( ((2, ) + np.shape(X) + (spacePolynOrder, spacePolynOrder,)) )
 
-            for k in range(order):
-                for l in range(order):
-                    X_HO[:, :, k, l] = X + (1. * k) / order * dx
-                    Y_HO[:, :, k, l] = Y + (1. * l) / order * dy
+            for k in range(spacePolynOrder):
+                for l in range(spacePolynOrder):
+                    X_HO[:, :, k, l] = X + (1. * k) / spacePolynOrder * dx
+                    Y_HO[:, :, k, l] = Y + (1. * l) / spacePolynOrder * dy
 
             self.xValidGrid = X_HO
             self.yValidGrid = Y_HO

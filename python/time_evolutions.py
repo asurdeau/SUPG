@@ -20,7 +20,6 @@ from spatial_operators import get_evaluation_of_arbitrar_order_SUPG_physical_ter
 import time_operators
 import plots
 from plots import makeSolutionsPlots, openGifWriters, closeGifWriters, openPdfWriters, closePdfWriters, makeObservableTablePlots, makeConvTestPlots
-from plots import getSchemeKeys
 import solutions
 
 
@@ -51,6 +50,9 @@ def getOneApproximateSolution(params, q_prep=[]):
     ### scheme choice
     schemeChoice = params["scheme_choice"]
 
+    # stabilisation factor (SUPG) :
+    alpha = params["stabilisation_factor"]
+
     ### observables choice 
     i_obs_list = params["observables_choices"]
     do_obs_table = plots.getDoObservablesTable(i_obs_list)
@@ -70,7 +72,7 @@ def getOneApproximateSolution(params, q_prep=[]):
     currentIteration = 0
     lastCompletedIteration = 0
     currentTime = 0.0
-    taux_progression = 0.1
+    taux_progression = 0.25
     dt_apriori = min(dx, dy) * CFL
 
     ### time tables
@@ -88,15 +90,16 @@ def getOneApproximateSolution(params, q_prep=[]):
     operatorsCoeffTest = spatial_operators.extract_operators(operators)
     # operatorsCoeffTest = spatial_operators.extract_operators_improved(dx, dy)
 
-    order = params["order"]
+    spacePolynOrder, nbSubTimeSteps, nbCorrections = params["order"].values()
+    basisChoice = params["basis_choice"]
 
     ### Initialise data
-    if order == 0 :
+    if spacePolynOrder == 0 :
         q = np.zeros((Nx + 2*nGhost, Ny + 2*nGhost, 3))
     else : 
-        q = np.zeros((Nx + 2*nGhost, Ny + 2*nGhost, order, order, 3))
-        evolCoeffs = spatial_operators.get_arbitrar_order_SUPG_weighted_evolution_operator_coeffs(order, dx, dy)
-        massCoeffs = spatial_operators.get_arbitrar_order_SUPG_weighted_mass_operator_coeffs(order)
+        q = np.zeros((Nx + 2*nGhost, Ny + 2*nGhost, spacePolynOrder, spacePolynOrder, 3))
+        evolCoeffs = spatial_operators.get_arbitrar_order_SUPG_weighted_evolution_operator_coeffs(basisChoice, spacePolynOrder, dx, dy, alpha, h)
+        massCoeffs = spatial_operators.get_arbitrar_order_SUPG_weighted_mass_operator_coeffs(basisChoice, spacePolynOrder, dx, dy, alpha, h)
 
     if simulationChoice == 4 :
         q_prep = solutions.getSolution(currentTime, X, Y, simulationChoice, params["solution_parameters"])
@@ -132,7 +135,7 @@ def getOneApproximateSolution(params, q_prep=[]):
     
     ### initial observables
     axes = (0, 1)
-    if order > 0 :
+    if spacePolynOrder > 0 :
         axes = (0, 1, 2, 3)
     pdf_writers, gif_writers, doPlot, do_gif_plot, nbPlotsDone, timeBetweenPlots, Xvis, Yvis, \
         obs_tables_step, iterations_of_obs_table, normsTable, errorsTable, massesTable, physicalTermsNormsTable = \
@@ -150,7 +153,7 @@ def getOneApproximateSolution(params, q_prep=[]):
     # q1 = q.copy()
     # q2 = q.copy()
    
-    if order == 0 :   # FIRST ORDER SIMULATION
+    if spacePolynOrder == 0 :   # FIRST ORDER SIMULATION
         if (any(np.array(i_obs_list) == 7)): # WE HAVE TO COMPUTE THE PHYSICAL TERMS
             while (abs(currentTime - finalTime) > 1.e-10) :
             
@@ -212,7 +215,7 @@ def getOneApproximateSolution(params, q_prep=[]):
                 q, physicalTerms = time_operators.getForwardEulerUpdateAndPhysicalTerms(q, dt, gridOp, iMin, iMax, jMin, jMax, dx, dy, schemeChoice, simulationChoice, operatorsCoeff, \
                                                         divFluxTimeTable, updateTimeTable, currentIteration)
 
-                q = time_operators.getDecUpdate(q, dt, order, iMin, iMax, jMin, jMax, nGhost, massCoeffs, evolCoeffs)
+                q = time_operators.getDeCUpdate(q, dt, order, iMin, iMax, jMin, jMax, nGhost, massCoeffs, evolCoeffs)
 
                 lastCompletedIteration += 1
 
@@ -230,7 +233,8 @@ def getOneApproximateSolution(params, q_prep=[]):
         
                 # MISE A JOUR
                 currentIteration += 1
-                q = time_operators.getDecUpdate(q, dt, order, iMin, iMax, jMin, jMax, nGhost, massCoeffs, evolCoeffs)
+                q = time_operators.getDeCUpdate(q, dt, spacePolynOrder, nbSubTimeSteps, nbCorrections, iMin, iMax, jMin, jMax, nGhost, massCoeffs, evolCoeffs)
+                # q = time_operators.getDeveloppedDeCUpdate(q, dt, order, iMin, iMax, jMin, jMax, nGhost, massCoeffs, evolCoeffs)
                 # q_order1 = time_operators.getForwardEulerUpdate(q_order1, dt, gridOp, iMin, iMax, jMin, jMax, dx, dy, schemeChoice, simulationChoice, operatorsCoeff, \
                 #                                         divFluxTimeTable, updateTimeTable, currentIteration)
 
@@ -252,14 +256,14 @@ def getOneApproximateSolution(params, q_prep=[]):
     ### Quelques prints
     endTimeLoop = time.time()
     print("Temps de calcul boucle : ", endTimeLoop - startTimeLoop)
-    print("type de la sortie q : ", q.dtype)
-    print("moyenne pour le calcul de divFLux  : ", np.sum(divFluxTimeTable[divFluxTimeTable > 0]) / lastCompletedIteration )
-    print("moyenne pour la mise à jour de q   : ", np.sum(updateTimeTable[updateTimeTable > 0]) / lastCompletedIteration )
+    # print("type de la sortie q : ", q.dtype)
+    # print("moyenne pour le calcul de divFLux  : ", np.sum(divFluxTimeTable[divFluxTimeTable > 0]) / lastCompletedIteration )
+    # print("moyenne pour la mise à jour de q   : ", np.sum(updateTimeTable[updateTimeTable > 0]) / lastCompletedIteration )
 
-    print("2e schéma : ")
-    print("moyenne pour le calcul de divFLux  : ", np.sum(divFluxTimeTable2[divFluxTimeTable2 > 0]) / lastCompletedIteration )
-    print("moyenne pour la mise à jour de q   : ", np.sum(updateTimeTable2[updateTimeTable2 > 0]) / lastCompletedIteration )
-    print("max de l'écart entre les deux schémas : ", np.max(schemesCompTable))
+    # print("2e schéma : ")
+    # print("moyenne pour le calcul de divFLux  : ", np.sum(divFluxTimeTable2[divFluxTimeTable2 > 0]) / lastCompletedIteration )
+    # print("moyenne pour la mise à jour de q   : ", np.sum(updateTimeTable2[updateTimeTable2 > 0]) / lastCompletedIteration )
+    # print("max de l'écart entre les deux schémas : ", np.max(schemesCompTable))
 
     # plt.figure()
     # plt.title("comparaisons entre modSUPG et optModSUPG sur données aléatoires \n de valeurs entre 1e-3 et 1.e3")
@@ -272,13 +276,13 @@ def getOneApproximateSolution(params, q_prep=[]):
     # plt.close()
 
     ### Dernière observable éventuelle 
-    getLastObservables(q, q_prep, currentTime, gridOp, params, order, operatorsCoeff, do_obs_table, \
+    getLastObservables(q, q_prep, currentTime, gridOp, params, spacePolynOrder, operatorsCoeff, do_obs_table, \
                        Xvis, Yvis, pdf_writers, gif_writers, nbPlots, do_pdf_plot, do_gif_plot, \
                        iterations_of_obs_table, normsTable, errorsTable, massesTable, physicalTermsNormsTable)
 
     
     # FIN DE LA ROUTINE : ON RENVOIE LA VALEUR FINALE
-    return q[iMin:iMax+1, jMin:jMax+1]
+    return q
 
 
 
@@ -313,70 +317,164 @@ def makePerturbedPreparedSimulation(params):
 
 def getConvergenceTest(nList, params):
     
-    newParams = params.copy()
-    finalTime = params["time_parameters"]["end_time"]
+    finalTime, CFL = params["time_parameters"].values()
     supErrorsList = (-1.) * np.ones((len(nList), 3))
     L2ErrorsList = (-1.) * np.ones((len(nList), 3))
-    plotLoc = newParams["plot_parameters"]["plot_loc"]
+    plotLoc = params["plot_parameters"]["plot_loc"]
     xL, xR, yL, yR = params["grid_parameters"]["domain_parameters"].values()
     simulationChoice = params["simulation_choice"]
+    scheme_name, scheme_short = plots.getSchemeKeys(params)
+    simul_name, simul_short = plots.getSimulKeys(params)
 
-    hList = max(xR - xL, yR - yL) / (np.array(nList) - 1)
+    spacePolynOrder, nbSubTimeSteps, nbCorrections = params["order"].values()
+    alpha = params["stabilisation_factor"]
+
+    axes = (0, 1)
+    if spacePolynOrder >= 1:
+        axes = (0, 1, 2, 3)
+
+    hList = max(xR - xL, yR - yL) / (np.array(nList))
 
     i = 0
     for n in nList :
-        newParams["grid_parameters"]["mesh_parameters"]["Nx"] = n
-        newParams["grid_parameters"]["mesh_parameters"]["Ny"] = n
+        params["grid_parameters"]["mesh_parameters"]["Nx"] = n
+        params["grid_parameters"]["mesh_parameters"]["Ny"] = n
 
         print("calcul de solution pour h = "+str(hList[i])+" || n = "+str(n))
-        q = getOneApproximateSolution(newParams)
+        q = getOneApproximateSolution(params)
 
-        gridOp = grid_mod.gridOperator(newParams)
-        q_exact = solutions.getSolution(finalTime, gridOp, simulationChoice, params["solution_parameters"])
+        gridOp = grid_mod.gridOperator(params)
+        X = gridOp.xValidGrid
+        Y = gridOp.yValidGrid
+        iMin, iMax, jMin, jMax = gridOp.valid_grid
+        q_exact = solutions.getSolution(finalTime, X, Y, simulationChoice, params["solution_parameters"])
         
-        supErrorsList[i] = np.max(abs(q - q_exact), axis=(0, 1))
+        supErrorsList[i] = np.max(abs(q[iMin:iMax+2, jMin:jMax+2] - q_exact), axis=axes)
         dx, dy = gridOp.steps
-        L2ErrorsList[i] = dx * dy * np.sqrt(np.sum( (q - q_exact)**2, axis=(0, 1)))
+        L2ErrorsList[i] = np.sqrt(dx * dy * np.sum( (q[iMin:iMax+2, jMin:jMax+2] - q_exact)**2, axis=axes))
 
+        print("Erreur sup : ", supErrorsList[i])
+        print("Erreur L2 : ", L2ErrorsList[i])
+        print()
 
         # Plotting successive figures
         # if (True) :
         if (False) :
-            plots = [
+
+            if spacePolynOrder > 0 :
+                Xvis, Yvis = plots.getVisualisationGrid(params)
+                q_vis = plots.getVisualisationData(q[iMin:iMax+2, jMin:jMax+2], params)
+            else :
+                Xvis = X
+                Yvis = Y
+                q_vis = q[iMin:iMax+2, jMin:jMax+2]
+        
+            plots_keys = [
                 (XVEL, "U", "Vitesse U", "RdBu_r"),
                 (YVEL, "V", "Vitesse V", "RdBu_r"),
                 (PRES, "P", "Pression",  "viridis"),
             ]
 
-            numLevels = params["plot_parameters"]["levels"]
-            X = gridOp.xValidGrid
-            Y = gridOp.yValidGrid
-
-            schemeShort, schemeName = getSchemeTitles(params)
-
-            for var, filename, title, cmap in plots:
+            plots_keys = [
+                (t[0], f"{simul_short}{scheme_short}{t[1]}_n{n}_CFL{CFL}" ) + t[2:]
+                for t in plots_keys
+            ]
+        
+            # FIGURES FOR APPROXIMATE SOLUTIONS
+            for var, filename, title, cmap in plots_keys:
                 fig, ax = plt.subplots()
-                cf = ax.contourf(X, Y, q[:, :, var], levels=numLevels, cmap=cmap)
-                ax.contour(X, Y, q[:, :, var], levels=numLevels, colors="k", linewidths=0.3)
-                # plt.colorbar(cf, ax=ax, label=title, format="%.2f")
-                plt.colorbar(cf, ax=ax, label=title)
-                ax.set_title(f"{title} avec le schéma "+schemeName+f" à t={round(finalTime, 1)} \n avec "+str(n)+" points")
+                # cf = ax.contourf(X, Y, q[:, :, var], levels=numLevels, cmap=cmap)
+                # ax.contour(X, Y, q[:, :, var], levels=numLevels, colors="k", linewidths=0.3)
+                pcm = ax.pcolormesh(Xvis, Yvis, q_vis[:, :, var], cmap=cmap)
+                # plt.colorbar(cf, ax=ax, label=title)
+                plt.colorbar(pcm, ax=ax, label=title)
+                ax.set_title(f"{simul_name} avec {scheme_name} : \n {title} à t={round(finalTime, 1)} et n = {n}, CFL = {CFL}")
                 ax.set_xlabel("x")
                 ax.set_ylabel("y")
                 ax.set_aspect("equal")
                 plt.tight_layout()
-                plt.savefig(plotLoc+filename+"_"+schemeShort+"_"+str(n))
-                
+                plt.savefig(f"{plotLoc}{filename}.png")
                 plt.close()
 
         i += 1
 
     # Writing content to a file
-    outputs = [(XVEL, "U"), (YVEL, "V"), (PRES, "P")]
-    for var, name in outputs :
-        with open("results_"+name+".txt", 'w') as f:
-            for k in range(len(nList)):
-                f.write(str(hList[k])+"     "+str(supErrorsList[k, var])+"     "+str(L2ErrorsList[k, var])+"\n")
+    with open(f"{plotLoc}Test_Conv_P{spacePolynOrder}M{nbSubTimeSteps}C{nbCorrections}.txt", 'a') as f:
+        f.write(f"=== Test de DeC (P{spacePolynOrder}, M{nbSubTimeSteps}, C{nbCorrections}) sur {simul_name} === \n\n")
+        f.write(f"Autres paramètres : alpha = {alpha:6.3e}, CFL = {round(CFL, 3)} \n\n")
+        f.write(f"--- Erreurs en norme sup : \n")
+        f.write(f"{'h':>12} | {'u':>14} | {'ordre':>14} | {'v':>14} | {'ordre':>14} | {'p':>14} | {'ordre':>14}\n")
+        f.write("-" * 13 + ("+" + "-" * 16) * 6 + "" + "\n")
+        f.write(f"{hList[0]:>12.3e} | {supErrorsList[0, XVEL]:>14.3e} | {" - ":>14} | {supErrorsList[0, YVEL]:>14.3e} | {" - ":>14} | {supErrorsList[0, PRES]:>14.3e} | {" - ":>14} \n")
+        for k in range(1, len(hList)):
+            ordre_sup_u =  (np.log(supErrorsList[k, XVEL]) - np.log(supErrorsList[k-1, XVEL])) / (np.log(hList[k]) - np.log(hList[k-1]))
+            ordre_sup_v =  (np.log(supErrorsList[k, YVEL]) - np.log(supErrorsList[k-1, YVEL])) / (np.log(hList[k]) - np.log(hList[k-1]))
+            ordre_sup_p =  (np.log(supErrorsList[k, PRES]) - np.log(supErrorsList[k-1, PRES])) / (np.log(hList[k]) - np.log(hList[k-1]))
+            # f.write(f"{hList[k]:>12.3e} | {u_finalTime_sup_errors[k]:>14.3e} | {ordre_u:>14.3e} | {v_finalTime_sup_errors[k]:>14.3e} | {ordre_v:>14.3e} | {p_finalTime_sup_errors[k]:>14.3e} | {ordre_p:>14.3e} \n")
+            f.write(f"{hList[k]:>12.3e} | {supErrorsList[k, XVEL]:>14.3e} | {round(ordre_sup_u, 3):>14} | {supErrorsList[k, YVEL]:>14.3e} | {round(ordre_sup_v, 3):>14} | {supErrorsList[k, PRES]:>14.3e} | {round(ordre_sup_p, 3):>14} \n")
+
+        f.write(f"\n--- Erreurs en norme L2 : \n")
+        f.write(f"{'h':>12} | {'u':>14} | {'ordre':>14} | {'v':>14} | {'ordre':>14} | {'p':>14} | {'ordre':>14}\n")
+        f.write("-" * 13 + ("+" + "-" * 16) * 6 + "" + "\n")
+        f.write(f"{hList[0]:>12.3e} | {L2ErrorsList[0, XVEL]:>14.3e} | {" - ":>14} | {L2ErrorsList[0, YVEL]:>14.3e} | {" - ":>14} | {L2ErrorsList[0, PRES]:>14.3e} | {" - ":>14} \n")
+        for k in range(1, len(hList)):
+            ordre_L2_u =  (np.log(L2ErrorsList[k, XVEL]) - np.log(L2ErrorsList[k-1, XVEL])) / (np.log(hList[k]) - np.log(hList[k-1]))
+            ordre_L2_v =  (np.log(L2ErrorsList[k, YVEL]) - np.log(L2ErrorsList[k-1, YVEL])) / (np.log(hList[k]) - np.log(hList[k-1]))
+            ordre_L2_p =  (np.log(L2ErrorsList[k, PRES]) - np.log(L2ErrorsList[k-1, PRES])) / (np.log(hList[k]) - np.log(hList[k-1]))
+            # f.write(f"{hList[k]:>12.3e} | {u_finalTime_L2_errors[k]:>14.3e} | {ordre_u:>14.3e} | {v_finalTime_L2_errors[k]:>14.3e} | {ordre_v:>14.3e} | {p_finalTime_L2_errors[k]:>14.3e} | {ordre_p:>14.3e} \n")
+            f.write(f"{hList[k]:>12.3e} | {L2ErrorsList[k, XVEL]:>14.3e} | {round(ordre_L2_u, 3):>14} | {L2ErrorsList[k, YVEL]:>14.3e} | {round(ordre_L2_v, 3):>14} | {L2ErrorsList[k, PRES]:>14.3e} | {round(ordre_L2_p, 3):>14} \n")
+        f.write("\n" * 3)
+
+
+    # REFERENCE SOLUTION PLOT
+    # if True :
+    if False :
+        n = 200
+        params["grid_parameters"]["mesh_parameters"]["Nx"] = n
+        params["grid_parameters"]["mesh_parameters"]["Ny"] = n
+
+        gridOp = grid_mod.gridOperator(params)
+        X = gridOp.xValidGrid
+        Y = gridOp.yValidGrid
+
+        # Plotting successive figures
+        if (True) :
+        # if (False) :
+
+            if spacePolynOrder > 0 :
+                Xvis, Yvis = plots.getVisualisationGrid(params)
+            else :
+                Xvis = X
+                Yvis = Y
+            
+            q_exact = solutions.getSolution(finalTime, Xvis, Yvis, simulationChoice, params["solution_parameters"])
+        
+            plots_keys = [
+                (XVEL, "u_ex", "Vitesse u exacte", "RdBu_r"),
+                (YVEL, "v_ex", "Vitesse v exacte", "RdBu_r"),
+                (PRES, "p_ex", "Pression exacte",  "viridis"),
+            ]
+
+            plots_keys = [
+                (t[0], f"{simul_short}{t[1]}_n{n}" ) + t[2:]
+                for t in plots_keys
+            ]
+        
+            # FIGURES FOR APPROXIMATE SOLUTIONS
+            for var, filename, title, cmap in plots_keys:
+                fig, ax = plt.subplots()
+                # cf = ax.contourf(X, Y, q[:, :, var], levels=numLevels, cmap=cmap)
+                # ax.contour(X, Y, q[:, :, var], levels=numLevels, colors="k", linewidths=0.3)
+                # plt.colorbar(cf, ax=ax, label=title)
+                pcm = ax.pcolormesh(Xvis, Yvis, q_exact[:, :, var], cmap=cmap)
+                plt.colorbar(pcm, ax=ax, label=title)
+                ax.set_title(f"{simul_name} exacte : \n {title} à t={round(finalTime, 1)} et n = {n}")
+                ax.set_xlabel("x")
+                ax.set_ylabel("y")
+                ax.set_aspect("equal")
+                plt.tight_layout()
+                plt.savefig(f"{plotLoc}{filename}.png")
+                plt.close()
 
 
     makeConvTestPlots(hList, supErrorsList, L2ErrorsList, params)
@@ -414,8 +512,8 @@ def getAdaptedTimeUpdate(dt_apriori, currentTime, finalTime, do_obs_table, nbPlo
             currentTime += dt_apriori
 
         if ( abs(currentTime - finalTime * taux_progression) < 0.5 * dt_apriori ):
-            print("progression du calcul : " + str( 100 * round(taux_progression, 3) )+"%")
-            taux_progression += 0.1
+            print(" - progression du calcul : " + str( 100 * round(taux_progression, 3) )+"%")
+            taux_progression += 0.25
             
 
     return dt, currentTime, doPlot, taux_progression
@@ -504,8 +602,8 @@ def getInitialObservables(q, q_prep, finalTime, dt_apriori, grid, params, simula
         errorsTable.append(np.array([np.nan, np.nan, np.nan]))
 
     if (do_obs_table[6]): # total masses
-        order = params["order"]
-        massesTable.append(dx * dy * np.sum(q[iMin:iMax+1, jMin:jMax+1], axis=axes)) / max(1, order) ** 2
+        spacePolynOrder = params["order"]["space_polyn_order"]
+        massesTable.append(dx * dy * np.sum(q[iMin:iMax+1, jMin:jMax+1], axis=axes)) / max(1, spacePolynOrder) ** 2
 
     # if (do_obs_table[7]): # DivU
     #     physicalTermsNormsTable = (-1.) * np.ones((a_priori_nb_iter_margin, 2), order="F")
@@ -567,7 +665,7 @@ def getIntermediateObservables(q, q_prep, physicalTerms, currentTime, finalTime,
 
 
 
-def getLastObservables(q, q_prep, currentTime, grid, params, order, operatorsCoeff, do_obs_table, \
+def getLastObservables(q, q_prep, currentTime, grid, params, spacePolynOrder, operatorsCoeff, do_obs_table, \
                        Xvis, Yvis, pdf_writers, gif_writers, nbPlots, do_pdf_plot, do_gif_plot, \
                        iterations_of_obs_table, normsTable, errorsTable, massesTable, physicalTermsNormsTable):
     

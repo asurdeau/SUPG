@@ -108,28 +108,34 @@ def getSolution(t, X, Y, simulationChoice, solParams):
         q = np.zeros((np.shape(X))+(3,))
         varList = [XVEL, YVEL, PRES]
 
-        for var in varList:
-            q[:, :, var] = amplitudes[var]
-            if modes[var] == 1:
-                q[1::2, 0::2, var] = - amplitudes[var]
-                q[0::2, 1::2, var] = - amplitudes[var]
+        if len(np.shape(X)) == 2:
+            for var in varList:
+                q[:, :, var] = amplitudes[var]
+                if modes[var] == 1:
+                    q[1::2, 0::2, var] = - amplitudes[var]
+                    q[0::2, 1::2, var] = - amplitudes[var]
 
-            if modes[var] == 2:
-                q[1::2, :, var] = - amplitudes[var]
-            
-            if modes[var] == 3:
-                q[:, 1::2, var] = - amplitudes[var]
+                if modes[var] == 2:
+                    q[1::2, :, var] = - amplitudes[var]
+                
+                if modes[var] == 3:
+                    q[:, 1::2, var] = - amplitudes[var]
+        elif len(np.shape(X)) == 4:
+            for var in varList:
+                q[:, :, :, :, var] = amplitudes[var]
+                if modes[var] == 1:
+                    q[1::2, 0::2, :, :, var] = - amplitudes[var]
+                    q[0::2, 1::2, :, :, var] = - amplitudes[var]
+
+                if modes[var] == 2:
+                    q[1::2, :, :, :, var] = - amplitudes[var]
+                
+                if modes[var] == 3:
+                    q[:, 1::2, :, :, var] = - amplitudes[var]
+        else :
+            print("Erreur de tailles de variables pour checkerboards")
 
         return q
 
-
-
-
-
-####################################################################################################################
-
-#                                                  HIGHER ORDER                                                    #
-
-####################################################################################################################
 
 

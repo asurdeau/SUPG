@@ -12,26 +12,37 @@ grid_parameters :
 
 
 time_parameters : 
-  end_time : 100.
-  CFL_number : 0.45
+  end_time : 1.
+  CFL_number : 0.1
 
 
 
-nList : [100, 200, 400, 800]
+# nList : [10, 20, 40, 80, 160]
+nList : [20, 40, 80, 160, 320]
 
 
 
 scheme_choice : 4      # 1 : CLASSICAL FV UPWIND || 2 : LUMPED SUPG || 3 : "À la carte" lumped SUPG || 4 : "À la carte + factorisé" lumped SUPG  
                        # -1 : test
 
+order :
+  space_polyn_order : 2              # 0 : 1st order w 1st order only routines, 1 : 1st order w arbitrar order routines, etc...
+  sub_time_steps : 1                     # Number of subtime nodes : WE DO NOT COUNT tn AS A NODE !!!
+  correction_number : 2
 
 
-observables_choices : [7]                # 1: 1d Plots of solutions || 2: 2d Plots of solutions || 3: 2d Plots of norm of the difference
+basis_choice : "basic"               # "basic", "LGLo"
+
+
+stabilisation_factor : 0.005
+
+
+observables_choices : [8]                # 1: 1d Plots of solutions || 2: 2d Plots of solutions || 3: 2d Plots of norm of the difference
                                          # 4: norms of the approx sol || 5: Errors w/ exact || 6: total mass || 7: Physical Terms
                                          # 8: CV tests || 9: series of tests ||
 
 
-simulation_choice : 3                    # 1: cst || 2 : analytical periodic || 3: stationary vortex
+simulation_choice : 2                    # 1: cst || 2 : analytical periodic || 3: stationary vortex
                                          # 4: cst + perturbation || 5: stationary vortex + pressure perturbation
                                          # 6: 0 + noise || 7: checkerboards
 
@@ -50,7 +61,9 @@ solution_parameters :
     center : [0.4, 0.43]                                # the center 
     radius : 0.1                                        # the radius
   noise_range : [-5, 5]                                 # n1, n2 for the range written as  [-10^(-n1), -10^(-n2)] u [10^(-n2), 10^(-n1)]
-  checkerboard : [[1., -1.], [1., -1.], [1., -1.]]      # values for u, v and p (first is the one at (0, 0) and other of the same checkerboard)
+  checkerboard :
+    modes : [1, 1, 1]                                   # 1 : xy-check, 2 : x-only, 3 : y-only 4 : constant...
+    amplitudes : [1, 1, 1]
 
 
 
@@ -59,8 +72,9 @@ plot_parameters :
   plot_loc : "Plots/Tests/"
   # 2d and 1d plots parameters
   nb_plots : 11             # Counting the initial one ! If < 1 no gif !
+  number_visualisation_points : 2
   do_pdf_plot : y           # y -> yes || anything else -> no (no "" but still counted as a string)
-  do_exact_pdf_plot : 
+  do_exact_pdf_plot : y
   do_gif_plot : 
   do_exact_gif_plot :
   gif_time : 1.             # en s 
@@ -69,13 +83,9 @@ plot_parameters :
   # 1d parameters
   section : 3               # 1 : horizontal middle || 2 : vertical middle || 3 : diagonal
   slice_indices : [50, 50]  # slices indices i_slice and j_slice
-  same_plot : y             # all norms on same plot :: y -> yes || anything else -> no 
+  # other observables plots
+  same_plot : y             # all norms on same plot : y -> yes || anything else -> no 
   
   
 
 # "Plots/Tests/smooth_oblique_flow/45_deg/"  "Plots/Tests/random_noise/"  "Plots/Tests/stationary_vortex/C6_vortex/"
-
-
-# HIGHER ORDER PARAMETERS
-order : 0
-number_visualisation_points : 2

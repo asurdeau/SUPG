@@ -1,5 +1,6 @@
 # Modules généraux
 import numpy as np
+from numpy import sqrt
 from numba import njit
 
 # Modules perso
@@ -772,7 +773,7 @@ def extract_operators_improved(dx, dy):
 
 
 @njit
-def get_evaluation_of_arbitrar_order_SUPG_weighted_evolution_operator(q, iMin, iMax, jMin, jMax, order, evolCoeffs):
+def get_evaluation_of_arbitrar_order_SUPG_weighted_evolution_operator(q, iMin, iMax, jMin, jMax, spacePolynOrder, evolCoeffs):
     # allocation de variables pour chaque coeff
     # u equation - u term
     uEq_uTerm_xp1, uEq_uTerm_x, uEq_uTerm_xm1 = evolCoeffs[0]
@@ -830,8 +831,8 @@ def get_evaluation_of_arbitrar_order_SUPG_weighted_evolution_operator(q, iMin, i
     # COMPUTATIONS OF THE Y OPERATORS ON THE STENCIL iMin-1:iMax+1 x jMin:jMax
     for i in range(iMin-1, iMax+2):
       for j in range(jMin, jMax+1):
-        for k in range(order): # compute qtties for all dofs
-          for l in range(order): # compute qtties for all dofs
+        for k in range(spacePolynOrder): # compute qtties for all dofs
+          for l in range(spacePolynOrder): # compute qtties for all dofs
             # U equation
             uEq_uTerm_yOp[i, j, k, l] = uEq_uTerm_yp1[l, 0] * q[i, j+1, k, 0, XVEL] + uEq_uTerm_y[l, 0] * q[i, j, k, 0, XVEL] + uEq_uTerm_ym1[l, 0] * q[i, j-1, k, 0, XVEL]
             uEq_vTerm_yOp[i, j, k, l] = uEq_vTerm_yp1[l, 0] * q[i, j+1, k, 0, YVEL] + uEq_vTerm_y[l, 0] * q[i, j, k, 0, YVEL] + uEq_vTerm_ym1[l, 0] * q[i, j-1, k, 0, YVEL]
@@ -850,7 +851,7 @@ def get_evaluation_of_arbitrar_order_SUPG_weighted_evolution_operator(q, iMin, i
             pEq_pTerm1_yOp[i, j, k, l] = pEq_pTerm1_yp1[l, 0] * q[i, j+1, k, 0, PRES] + pEq_pTerm1_y[l, 0] * q[i, j, k, 0, PRES] + pEq_pTerm1_ym1[l, 0] * q[i, j-1, k, 0, PRES]
             pEq_pTerm2_yOp[i, j, k, l] = pEq_pTerm2_yp1[l, 0] * q[i, j+1, k, 0, PRES] + pEq_pTerm2_y[l, 0] * q[i, j, k, 0, PRES] + pEq_pTerm2_ym1[l, 0] * q[i, j-1, k, 0, PRES]
 
-            for p in range(1, order): 
+            for p in range(1, spacePolynOrder): 
               # U equation
               uEq_uTerm_yOp[i, j, k, l] += uEq_uTerm_yp1[l, p] * q[i, j+1, k, p, XVEL] + uEq_uTerm_y[l, p] * q[i, j, k, p, XVEL] + uEq_uTerm_ym1[l, p] * q[i, j-1, k, p, XVEL]
               uEq_vTerm_yOp[i, j, k, l] += uEq_vTerm_yp1[l, p] * q[i, j+1, k, p, YVEL] + uEq_vTerm_y[l, p] * q[i, j, k, p, YVEL] + uEq_vTerm_ym1[l, p] * q[i, j-1, k, p, YVEL]
@@ -874,8 +875,8 @@ def get_evaluation_of_arbitrar_order_SUPG_weighted_evolution_operator(q, iMin, i
     # COMPUTATIONS OF THE Y OPERATORS ON THE STENCIL iMin-1:iMax+1 x jMin:jMax
     for i in range(iMin, iMax+1):
       for j in range(jMin, jMax+1):
-        for k in range(order): # compute qtties for all dofs
-          for l in range(order): # compute qtties for all dofs
+        for k in range(spacePolynOrder): # compute qtties for all dofs
+          for l in range(spacePolynOrder): # compute qtties for all dofs
             # # U equation
             # uEq_uTerm_ijkl = np.dot(uEq_uTerm_xp1[k], uEq_uTerm_yOp[i+1, j, :, l]) + np.dot(uEq_uTerm_x[k], uEq_uTerm_yOp[i, j, :, l]) \
             #                  + np.dot(uEq_uTerm_xm1[k], uEq_uTerm_yOp[i-1, j, :, l])
@@ -922,7 +923,7 @@ def get_evaluation_of_arbitrar_order_SUPG_weighted_evolution_operator(q, iMin, i
             pEq_pTerm1_ijkl = pEq_pTerm1_xp1[k, 0] * pEq_pTerm1_yOp[i+1, j, 0, l] + pEq_pTerm1_x[k, 0] * pEq_pTerm1_yOp[i, j, 0, l] + pEq_pTerm1_xm1[k, 0] * pEq_pTerm1_yOp[i-1, j, 0, l]
             pEq_pTerm2_ijkl = pEq_pTerm2_xp1[k, 0] * pEq_pTerm2_yOp[i+1, j, 0, l] + pEq_pTerm2_x[k, 0] * pEq_pTerm2_yOp[i, j, 0, l] + pEq_pTerm2_xm1[k, 0] * pEq_pTerm2_yOp[i-1, j, 0, l]
   
-            for p in range(1, order): 
+            for p in range(1, spacePolynOrder): 
               # U equation
               uEq_uTerm_ijkl += uEq_uTerm_xp1[k, p] * uEq_uTerm_yOp[i+1, j, p, l] + uEq_uTerm_x[k, p] * uEq_uTerm_yOp[i, j, p, l] + uEq_uTerm_xm1[k, p] * uEq_uTerm_yOp[i-1, j, p, l]
               uEq_vTerm_ijkl += uEq_vTerm_xp1[k, p] * uEq_vTerm_yOp[i+1, j, p, l] + uEq_vTerm_x[k, p] * uEq_vTerm_yOp[i, j, p, l] + uEq_vTerm_xm1[k, p] * uEq_vTerm_yOp[i-1, j, p, l]
@@ -954,7 +955,7 @@ def get_evaluation_of_arbitrar_order_SUPG_weighted_evolution_operator(q, iMin, i
 
 
 @njit
-def get_evaluation_of_arbitrar_order_SUPG_weighted_evolution_operator_AND_physical_terms(q, iMin, iMax, jMin, jMax, order, evolCoeffs):
+def get_evaluation_of_arbitrar_order_SUPG_weighted_evolution_operator_AND_physical_terms(q, iMin, iMax, jMin, jMax, spacePolynOrder, evolCoeffs):
     # allocation de variables pour chaque coeff
     # u equation - u term
     uEq_uTerm_xp1, uEq_uTerm_x, uEq_uTerm_xm1 = evolCoeffs[0]
@@ -1006,8 +1007,8 @@ def get_evaluation_of_arbitrar_order_SUPG_weighted_evolution_operator_AND_physic
     # COMPUTATIONS OF THE Y OPERATORS ON THE STENCIL iMin-1:iMax+1 x jMin:jMax
     for i in range(iMin-1, iMax+2):
       for j in range(jMin, jMax+1):
-        for k in range(order): # compute qtties for all dofs
-          for l in range(order): # compute qtties for all dofs
+        for k in range(spacePolynOrder): # compute qtties for all dofs
+          for l in range(spacePolynOrder): # compute qtties for all dofs
             # U equation
             uEq_uTerm_yOp[i, j, k, l] = uEq_uTerm_yp1[l, 0] * q[i, j+1, k, 0, XVEL] + uEq_uTerm_y[l, 0] * q[i, j, k, 0, XVEL] + uEq_uTerm_ym1[l, 0] * q[i, j-1, k, 0, XVEL]
             uEq_vTerm_yOp[i, j, k, l] = uEq_vTerm_yp1[l, 0] * q[i, j+1, k, 0, YVEL] + uEq_vTerm_y[l, 0] * q[i, j, k, 0, YVEL] + uEq_vTerm_ym1[l, 0] * q[i, j-1, k, 0, YVEL]
@@ -1026,7 +1027,7 @@ def get_evaluation_of_arbitrar_order_SUPG_weighted_evolution_operator_AND_physic
             pEq_pTerm1_yOp[i, j, k, l] = pEq_pTerm1_yp1[l, 0] * q[i, j+1, k, 0, PRES] + pEq_pTerm1_y[l, 0] * q[i, j, k, 0, PRES] + pEq_pTerm1_ym1[l, 0] * q[i, j-1, k, 0, PRES]
             pEq_pTerm2_yOp[i, j, k, l] = pEq_pTerm2_yp1[l, 0] * q[i, j+1, k, 0, PRES] + pEq_pTerm2_y[l, 0] * q[i, j, k, 0, PRES] + pEq_pTerm2_ym1[l, 0] * q[i, j-1, k, 0, PRES]
 
-            for p in range(1, order): 
+            for p in range(1, spacePolynOrder): 
               # U equation
               uEq_uTerm_yOp[i, j, k, l] += uEq_uTerm_yp1[l, p] * q[i, j+1, k, p, XVEL] + uEq_uTerm_y[l, p] * q[i, j, k, p, XVEL] + uEq_uTerm_ym1[l, p] * q[i, j-1, k, p, XVEL]
               uEq_vTerm_yOp[i, j, k, l] += uEq_vTerm_yp1[l, p] * q[i, j+1, k, p, YVEL] + uEq_vTerm_y[l, p] * q[i, j, k, p, YVEL] + uEq_vTerm_ym1[l, p] * q[i, j-1, k, p, YVEL]
@@ -1050,8 +1051,8 @@ def get_evaluation_of_arbitrar_order_SUPG_weighted_evolution_operator_AND_physic
     # COMPUTATIONS OF THE Y OPERATORS ON THE STENCIL iMin-1:iMax+1 x jMin:jMax
     for i in range(iMin, iMax+1):
       for j in range(jMin, jMax+1):
-        for k in range(order): # compute qtties for all dofs
-          for l in range(order): # compute qtties for all dofs
+        for k in range(spacePolynOrder): # compute qtties for all dofs
+          for l in range(spacePolynOrder): # compute qtties for all dofs
             # U equation
             uEq_uTerm_ijkl = uEq_uTerm_xp1[k, 0] * uEq_uTerm_yOp[i+1, j, 0, l] + uEq_uTerm_x[k, 0] * uEq_uTerm_yOp[i, j, 0, l] + uEq_uTerm_xm1[k, 0] * uEq_uTerm_yOp[i-1, j, 0, l]
             uEq_vTerm_ijkl = uEq_vTerm_xp1[k, 0] * uEq_vTerm_yOp[i+1, j, 0, l] + uEq_vTerm_x[k, 0] * uEq_vTerm_yOp[i, j, 0, l] + uEq_vTerm_xm1[k, 0] * uEq_vTerm_yOp[i-1, j, 0, l]
@@ -1070,7 +1071,7 @@ def get_evaluation_of_arbitrar_order_SUPG_weighted_evolution_operator_AND_physic
             pEq_pTerm1_ijkl = pEq_pTerm1_xp1[k, 0] * pEq_pTerm1_yOp[i+1, j, 0, l] + pEq_pTerm1_x[k, 0] * pEq_pTerm1_yOp[i, j, 0, l] + pEq_pTerm1_xm1[k, 0] * pEq_pTerm1_yOp[i-1, j, 0, l]
             pEq_pTerm2_ijkl = pEq_pTerm2_xp1[k, 0] * pEq_pTerm2_yOp[i+1, j, 0, l] + pEq_pTerm2_x[k, 0] * pEq_pTerm2_yOp[i, j, 0, l] + pEq_pTerm2_xm1[k, 0] * pEq_pTerm2_yOp[i-1, j, 0, l]
   
-            for p in range(1, order): 
+            for p in range(1, spacePolynOrder): 
               # U equation
               uEq_uTerm_ijkl += uEq_uTerm_xp1[k, p] * uEq_uTerm_yOp[i+1, j, p, l] + uEq_uTerm_x[k, p] * uEq_uTerm_yOp[i, j, p, l] + uEq_uTerm_xm1[k, p] * uEq_uTerm_yOp[i-1, j, p, l]
               uEq_vTerm_ijkl += uEq_vTerm_xp1[k, p] * uEq_vTerm_yOp[i+1, j, p, l] + uEq_vTerm_x[k, p] * uEq_vTerm_yOp[i, j, p, l] + uEq_vTerm_xm1[k, p] * uEq_vTerm_yOp[i-1, j, p, l]
@@ -1107,7 +1108,7 @@ def get_evaluation_of_arbitrar_order_SUPG_weighted_evolution_operator_AND_physic
 
 
 @njit
-def get_evaluation_of_arbitrar_order_SUPG_physical_terms(q, iMin, iMax, jMin, jMax, order, evolCoeffs):
+def get_evaluation_of_arbitrar_order_SUPG_physical_terms(q, iMin, iMax, jMin, jMax, spacePolynOrder, evolCoeffs):
     # allocation de variables pour chaque coeff
     # u equation - p term
     uEq_pTerm_xp1, uEq_pTerm_x, uEq_pTerm_xm1 = evolCoeffs[4]
@@ -1134,8 +1135,8 @@ def get_evaluation_of_arbitrar_order_SUPG_physical_terms(q, iMin, iMax, jMin, jM
     # COMPUTATIONS OF THE Y OPERATORS ON THE STENCIL iMin-1:iMax+1 x jMin:jMax
     for i in range(iMin-1, iMax+2):
       for j in range(jMin, jMax+1):
-        for k in range(order): # compute qtties for all dofs
-          for l in range(order): # compute qtties for all dofs
+        for k in range(spacePolynOrder): # compute qtties for all dofs
+          for l in range(spacePolynOrder): # compute qtties for all dofs
             # U equation
             uEq_pTerm_yOp[i, j, k, l] = uEq_pTerm_yp1[l, 0] * q[i, j+1, k, 0, PRES] + uEq_pTerm_y[l, 0] * q[i, j, k, 0, PRES] + uEq_pTerm_ym1[l, 0] * q[i, j-1, k, 0, PRES]
 
@@ -1146,7 +1147,7 @@ def get_evaluation_of_arbitrar_order_SUPG_physical_terms(q, iMin, iMax, jMin, jM
             pEq_uTerm_yOp[i, j, k, l] = pEq_uTerm_yp1[l, 0] * q[i, j+1, k, 0, XVEL] + pEq_uTerm_y[l, 0] * q[i, j, k, 0, XVEL] + pEq_uTerm_ym1[l, 0] * q[i, j-1, k, 0, XVEL]
             pEq_vTerm_yOp[i, j, k, l] = pEq_vTerm_yp1[l, 0] * q[i, j+1, k, 0, YVEL] + pEq_vTerm_y[l, 0] * q[i, j, k, 0, YVEL] + pEq_vTerm_ym1[l, 0] * q[i, j-1, k, 0, YVEL]
             
-            for p in range(1, order): 
+            for p in range(1, spacePolynOrder): 
               # U equation
               uEq_pTerm_yOp[i, j, k, l] += uEq_pTerm_yp1[l, p] * q[i, j+1, k, p, PRES] + uEq_pTerm_y[l, p] * q[i, j, k, p, PRES] + uEq_pTerm_ym1[l, p] * q[i, j-1, k, p, PRES]
 
@@ -1162,8 +1163,8 @@ def get_evaluation_of_arbitrar_order_SUPG_physical_terms(q, iMin, iMax, jMin, jM
     # COMPUTATIONS OF THE Y OPERATORS ON THE STENCIL iMin-1:iMax+1 x jMin:jMax
     for i in range(iMin, iMax+1):
       for j in range(jMin, jMax+1):
-        for k in range(order): # compute qtties for all dofs
-          for l in range(order): # compute qtties for all dofs
+        for k in range(spacePolynOrder): # compute qtties for all dofs
+          for l in range(spacePolynOrder): # compute qtties for all dofs
             # U equation
             uEq_pTerm_ijkl = uEq_pTerm_xp1[k, 0] * uEq_pTerm_yOp[i+1, j, 0, l] + uEq_pTerm_x[k, 0] * uEq_pTerm_yOp[i, j, 0, l] + uEq_pTerm_xm1[k, 0] * uEq_pTerm_yOp[i-1, j, 0, l]
 
@@ -1174,7 +1175,7 @@ def get_evaluation_of_arbitrar_order_SUPG_physical_terms(q, iMin, iMax, jMin, jM
             pEq_uTerm_ijkl = pEq_uTerm_xp1[k, 0] * pEq_uTerm_yOp[i+1, j, 0, l] + pEq_uTerm_x[k, 0] * pEq_uTerm_yOp[i, j, 0, l] + pEq_uTerm_xm1[k, 0] * pEq_uTerm_yOp[i-1, j, 0, l]
             pEq_vTerm_ijkl = pEq_vTerm_xp1[k, 0] * pEq_vTerm_yOp[i+1, j, 0, l] + pEq_vTerm_x[k, 0] * pEq_vTerm_yOp[i, j, 0, l] + pEq_vTerm_xm1[k, 0] * pEq_vTerm_yOp[i-1, j, 0, l]
             
-            for p in range(1, order): 
+            for p in range(1, spacePolynOrder): 
               # U equation
               uEq_pTerm_ijkl += uEq_pTerm_xp1[k, p] * uEq_pTerm_yOp[i+1, j, p, l] + uEq_pTerm_x[k, p] * uEq_pTerm_yOp[i, j, p, l] + uEq_pTerm_xm1[k, p] * uEq_pTerm_yOp[i-1, j, p, l]
   
@@ -1198,7 +1199,7 @@ def get_evaluation_of_arbitrar_order_SUPG_physical_terms(q, iMin, iMax, jMin, jM
 
 
 @njit
-def get_evaluation_of_arbitrar_order_SUPG_weighted_mass_operator(q, iMin, iMax, jMin, jMax, order, massCoeffs):
+def get_evaluation_of_arbitrar_order_SUPG_weighted_mass_operator(q, iMin, iMax, jMin, jMax, spacePolynOrder, massCoeffs):
     # allocation de variables pour chaque coeff
     # u equation - u term
     uEq_uTerm_xp1, uEq_uTerm_x, uEq_uTerm_xm1 = massCoeffs[0]
@@ -1253,8 +1254,8 @@ def get_evaluation_of_arbitrar_order_SUPG_weighted_mass_operator(q, iMin, iMax, 
     # COMPUTATIONS OF THE Y OPERATORS ON THE STENCIL iMin-1:iMax+1 x jMin:jMax
     for i in range(iMin-1, iMax+2):
       for j in range(jMin, jMax+1):
-        for k in range(order): # compute qtties for all dofs
-          for l in range(order): # compute qtties for all dofs
+        for k in range(spacePolynOrder): # compute qtties for all dofs
+          for l in range(spacePolynOrder): # compute qtties for all dofs
             # U equation
             uEq_uTerm_yOp[i, j, k, l] = uEq_uTerm_yp1[l, 0] * q[i, j+1, k, 0, XVEL] + uEq_uTerm_y[l, 0] * q[i, j, k, 0, XVEL] + uEq_uTerm_ym1[l, 0] * q[i, j-1, k, 0, XVEL]
             # uEq_vTerm_yOp[i, j, k, l] = uEq_vTerm_yp1[l, 0] * q[i, j+1, k, 0, YVEL] + uEq_vTerm_y[l, 0] * q[i, j, k, 0, YVEL] + uEq_vTerm_ym1[l, 0] * q[i, j-1, k, 0, YVEL]
@@ -1272,7 +1273,7 @@ def get_evaluation_of_arbitrar_order_SUPG_weighted_mass_operator(q, iMin, iMax, 
             pEq_vTerm_yOp[i, j, k, l] = pEq_vTerm_yp1[l, 0] * q[i, j+1, k, 0, YVEL] + pEq_vTerm_y[l, 0] * q[i, j, k, 0, YVEL] + pEq_vTerm_ym1[l, 0] * q[i, j-1, k, 0, YVEL]
             pEq_pTerm_yOp[i, j, k, l] = pEq_pTerm_yp1[l, 0] * q[i, j+1, k, 0, PRES] + pEq_pTerm_y[l, 0] * q[i, j, k, 0, PRES] + pEq_pTerm_ym1[l, 0] * q[i, j-1, k, 0, PRES]
 
-            for p in range(1, order): 
+            for p in range(1, spacePolynOrder): 
               # U equation
               uEq_uTerm_yOp[i, j, k, l] += uEq_uTerm_yp1[l, p] * q[i, j+1, k, p, XVEL] + uEq_uTerm_y[l, p] * q[i, j, k, p, XVEL] + uEq_uTerm_ym1[l, p] * q[i, j-1, k, p, XVEL]
               # uEq_vTerm_yOp[i, j, k, l] += uEq_vTerm_yp1[l, p] * q[i, j+1, k, p, YVEL] + uEq_vTerm_y[l, p] * q[i, j, k, p, YVEL] + uEq_vTerm_ym1[l, p] * q[i, j-1, k, p, YVEL]
@@ -1295,8 +1296,8 @@ def get_evaluation_of_arbitrar_order_SUPG_weighted_mass_operator(q, iMin, iMax, 
     # COMPUTATIONS OF THE Y OPERATORS ON THE STENCIL iMin-1:iMax+1 x jMin:jMax
     for i in range(iMin, iMax+1):
       for j in range(jMin, jMax+1):
-        for k in range(order): # compute qtties for all dofs
-          for l in range(order): # compute qtties for all dofs
+        for k in range(spacePolynOrder): # compute qtties for all dofs
+          for l in range(spacePolynOrder): # compute qtties for all dofs
             # U equation
             uEq_uTerm_ijkl = uEq_uTerm_xp1[k, 0] * uEq_uTerm_yOp[i+1, j, 0, l] + uEq_uTerm_x[k, 0] * uEq_uTerm_yOp[i, j, 0, l] + uEq_uTerm_xm1[k, 0] * uEq_uTerm_yOp[i-1, j, 0, l]
             # uEq_vTerm_ijkl = uEq_vTerm_xp1[k, 0] * uEq_vTerm_yOp[i+1, j, 0, l] + uEq_vTerm_x[k, 0] * uEq_vTerm_yOp[i, j, 0, l] + uEq_vTerm_xm1[k, 0] * uEq_vTerm_yOp[i-1, j, 0, l]
@@ -1314,7 +1315,7 @@ def get_evaluation_of_arbitrar_order_SUPG_weighted_mass_operator(q, iMin, iMax, 
             pEq_vTerm_ijkl = pEq_vTerm_xp1[k, 0] * pEq_vTerm_yOp[i+1, j, 0, l] + pEq_vTerm_x[k, 0] * pEq_vTerm_yOp[i, j, 0, l] + pEq_vTerm_xm1[k, 0] * pEq_vTerm_yOp[i-1, j, 0, l]
             pEq_pTerm_ijkl = pEq_pTerm_xp1[k, 0] * pEq_pTerm_yOp[i+1, j, 0, l] + pEq_pTerm_x[k, 0] * pEq_pTerm_yOp[i, j, 0, l] + pEq_pTerm_xm1[k, 0] * pEq_pTerm_yOp[i-1, j, 0, l]
   
-            for p in range(1, order): 
+            for p in range(1, spacePolynOrder): 
               # U equation
               uEq_uTerm_ijkl += uEq_uTerm_xp1[k, p] * uEq_uTerm_yOp[i+1, j, p, l] + uEq_uTerm_x[k, p] * uEq_uTerm_yOp[i, j, p, l] + uEq_uTerm_xm1[k, p] * uEq_uTerm_yOp[i-1, j, p, l]
               # uEq_vTerm_ijkl += uEq_vTerm_xp1[k, p] * uEq_vTerm_yOp[i+1, j, p, l] + uEq_vTerm_x[k, p] * uEq_vTerm_yOp[i, j, p, l] + uEq_vTerm_xm1[k, p] * uEq_vTerm_yOp[i-1, j, p, l]
@@ -1342,61 +1343,90 @@ def get_evaluation_of_arbitrar_order_SUPG_weighted_mass_operator(q, iMin, iMax, 
 
 
 
-def getLagElementsStandardOperators(order):
+def getBasicLagElementsStandardOperators(spacePolynOrder):
   # STANDARDS OPERATORS
-  ### FIRST ORDER FOR LAGRANGE BASIS
-  mass_o1 = np.array([[[1]], [[4]], [[1]]], dtype=float) / 6.
-  left_der_o1 = np.array([[[-1]], [[0]], [[1]]], dtype=float) / 2.
-  right_der_o1 = - left_der_o1
-  second_der_o1 = np.array([[[-1]], [[2]], [[-1]]], dtype=float)
+  Id = np.array([ np.zeros((spacePolynOrder, spacePolynOrder)), np.eye(spacePolynOrder), np.zeros((spacePolynOrder, spacePolynOrder)) ])
 
-  ### SECOND ORDER FOR LAGRANGE BASIS
-  mass_o2 = np.array([[[- 1, 0], [2, 0]], [[8, 2], [2, 16]], [[-1, 2], [0, 0]]], dtype=float) / 30.
-  left_der_o2 = np.array([[[1, 0], [-4, 0]], [[0, -4], [4, 0]], [[-1, 4], [0, 0]]], dtype=float) / 6.
-  right_der_o2 = - left_der_o2
-  second_der_o2 = np.array([[[1, 0], [-8, 0]], [[14, -8], [-8, 16]], [[1, -8], [0, 0]]], dtype=float) / 3.
+  if spacePolynOrder == 1:
+    ### FIRST ORDER FOR BASIC LAGRANGE BASIS
+    mass = np.array([[[1]], [[4]], [[1]]], dtype=float) / 6.
+    left_der = np.array([[[-1]], [[0]], [[1]]], dtype=float) / 2.
+    right_der = - left_der
+    second_der = np.array([[[-1]], [[2]], [[-1]]], dtype=float)
 
-  ### THIRD ORDER FOR LAGRANGE BASIS
-  mass_o3 = np.array([[[19, 0, 0], [-36, 0, 0], [99, 0, 0]], [[256, 99, -36], [99, 648, -81], [-36, -81, 648]], [[19, -36, 99], [0, 0, 0], [0, 0, 0]]], dtype=float) / 1680.
-  left_der_o3 = np.array([[[-7, 0, 0], [24, 0, 0], [-57, 0, 0]], [[0, -57, 24], [57, 0, -81], [-24, 81, 0]], [[7, -24, 57], [0, 0, 0], [0, 0, 0]]], dtype=float) / 80.
-  right_der_o3 = - left_der_o3
-  second_der_o3 = np.array([[[-13, 0, 0], [54, 0, 0], [-189, 0, 0]], [[296, -189, 54], [-189, 432, -297], [54, -297, 432]], [[-13, 54, -189], [0, 0, 0], [0, 0, 0]]], dtype=float) / 40.
+  elif spacePolynOrder == 2:
+    ### SECOND ORDER FOR BASIC LAGRANGE BASIS
+    mass = np.array([[[- 1, 0], [2, 0]], [[8, 2], [2, 16]], [[-1, 2], [0, 0]]], dtype=float) / 30.
+    left_der = np.array([[[1, 0], [-4, 0]], [[0, -4], [4, 0]], [[-1, 4], [0, 0]]], dtype=float) / 6.
+    right_der = - left_der
+    second_der = np.array([[[1, 0], [-8, 0]], [[14, -8], [-8, 16]], [[1, -8], [0, 0]]], dtype=float) / 3.
 
-  Id = np.array([ np.zeros((order, order)), np.eye(order), np.zeros((order, order)) ])
+  elif spacePolynOrder == 3:
+    ### THIRD ORDER FOR BASIC LAGRANGE BASIS
+    mass = np.array([[[19, 0, 0], [-36, 0, 0], [99, 0, 0]], [[256, 99, -36], [99, 648, -81], [-36, -81, 648]], [[19, -36, 99], [0, 0, 0], [0, 0, 0]]], dtype=float) / 1680.
+    left_der = np.array([[[-7, 0, 0], [24, 0, 0], [-57, 0, 0]], [[0, -57, 24], [57, 0, -81], [-24, 81, 0]], [[7, -24, 57], [0, 0, 0], [0, 0, 0]]], dtype=float) / 80.
+    right_der = - left_der
+    second_der = np.array([[[-13, 0, 0], [54, 0, 0], [-189, 0, 0]], [[296, -189, 54], [-189, 432, -297], [54, -297, 432]], [[-13, 54, -189], [0, 0, 0], [0, 0, 0]]], dtype=float) / 40.
 
-  if order == 1:
-    mass = mass_o1
-    left_der = left_der_o1
-    right_der = right_der_o1
-    second_der = second_der_o1
-  elif order == 2:
-    mass = mass_o2
-    left_der = left_der_o2
-    right_der = right_der_o2
-    second_der = second_der_o2
-  elif order == 3:
-    mass = mass_o3
-    left_der = left_der_o3
-    right_der = right_der_o3
-    second_der = second_der_o3
+  else :
+    raise Exception("getBasicLagElementsStandardOperators : operators not implemented yet")
+  
 
   return mass, left_der, right_der, second_der, Id
 
 
 
-# LES OPERATEURS SONT DECOMPOSES EN 3 : UN QUI AGIT EN +1, UN AUTRE EN 0 ET LE DERNIER EN -1
-def get_arbitrar_order_SUPG_weighted_evolution_operator_coeffs(order, dx, dy):
-    evolCoeffs = np.zeros((20, 3, order, order), dtype=np.float64)
+def getLGLoElementsStandardOperators(spacePolynOrder):
+  # STANDARDS OPERATORS
+    Id = np.array([ np.zeros((spacePolynOrder, spacePolynOrder)), np.eye(spacePolynOrder), np.zeros((spacePolynOrder, spacePolynOrder)) ])
+  
+    if spacePolynOrder == 1 or spacePolynOrder == 2 :
+      return getBasicLagElementsStandardOperators(spacePolynOrder)
+    
+    elif spacePolynOrder == 3:
+      ### THIRD ORDER FOR BASIC LAGRANGE BASIS
+      mass = np.array([[[1, 0, 0], [-sqrt(5.), 0, 0], [sqrt(5.), 0, 0]] \
+                       , [[12, sqrt(5.), -sqrt(5.)], [sqrt(5.), 30., 5.] \
+                       , [-sqrt(5), 5., 30.]], [[1, -sqrt(5.), sqrt(5.)], [0, 0, 0], [0, 0, 0]]] \
+                       , dtype=float) / 84.
 
-    mass, left_der, right_der, second_der, Id = getLagElementsStandardOperators(order)
+      left_der = np.array([[[-2, 0, 0], [-5. + 5.*sqrt(5), 0, 0], [-5. - 5.*sqrt(5), 0, 0]] \
+                           , [[0, -5. - 5.*sqrt(5), -5. + 5.*sqrt(5)], [5. + 5.*sqrt(5), 0, - 10.*sqrt(5)], [5. - 5.*sqrt(5), 10.*sqrt(5), 0]] \
+                           , [[2., 5. - 5.*sqrt(5), 5. + 5.*sqrt(5)], [0, 0, 0], [0, 0, 0]]] \
+                           , dtype=float) / 24.
+      
+      right_der = - left_der
+      second_der = np.array([[[-2, 0, 0], [15.*sqrt(5) - 25, 0, 0], [-15.*sqrt(5) - 25, 0, 0]] \
+                             , [[104, -15.*sqrt(5) - 25, 15.*sqrt(5) - 25], [-15.*sqrt(5) - 25, 100, -50], [15.*sqrt(5) - 25, -50, 100]] \
+                             , [[-2, 15.*sqrt(5) - 25, -15.*sqrt(5) - 25], [0, 0, 0], [0, 0, 0]]] \
+                             , dtype=float) / 12.
+
+    else :
+      raise Exception("getLGLoElementsStandardOperators : operators not implemented yet")
+    
+  
+    return mass, left_der, right_der, second_der, Id
+
+
+
+# LES OPERATEURS SONT DECOMPOSES EN 3 : UN QUI AGIT EN +1, UN AUTRE EN 0 ET LE DERNIER EN -1
+def get_arbitrar_order_SUPG_weighted_evolution_operator_coeffs(basisChoice, spacePolynOrder, dx, dy, alpha, h):
+    evolCoeffs = np.zeros((20, 3, spacePolynOrder, spacePolynOrder), dtype=np.float64)
+
+    if basisChoice == "basic" :
+      mass, left_der, right_der, second_der, Id = getBasicLagElementsStandardOperators(spacePolynOrder)
+    elif basisChoice == "LGLo" :
+      mass, left_der, right_der, second_der, Id = getLGLoElementsStandardOperators(spacePolynOrder)
+    else :
+      raise Exception("evolution_operators_ceoffs : The basis choice is unreckognized")
 
     # U EQUATION
     ### uEq_uTerm : dx / 2 * derivée seconde en x et masse en y
-    evolCoeffs[0] = 0.5 * second_der / dx
+    evolCoeffs[0] = alpha * h * second_der / dx**2
     evolCoeffs[1] = mass
 
     ### uEq_vTerm : dx / 2 * derivée simple en x et derivée simple y
-    evolCoeffs[2] = 0.5 * left_der
+    evolCoeffs[2] = alpha * h * left_der / dx
     evolCoeffs[3] = right_der / dy
 
     ### uEq_pTerm : derivée simple en x et masse en y
@@ -1406,11 +1436,11 @@ def get_arbitrar_order_SUPG_weighted_evolution_operator_coeffs(order, dx, dy):
     # V EQUATION
     ### vEq_uTerm : derivée simple en x et dy / 2 * derivée simple y
     evolCoeffs[6] = right_der / dx
-    evolCoeffs[7] = 0.5 * left_der
+    evolCoeffs[7] = alpha * h * left_der / dy
 
     ### vEq_vTerm : masse en x et dy / 2 * derivée seconde en y
     evolCoeffs[8] = mass
-    evolCoeffs[9] = 0.5 * second_der / dy
+    evolCoeffs[9] = alpha * h * second_der / dy**2
 
     ### vEq_pTerm : masse en x et derivée simple en y
     evolCoeffs[10] = mass
@@ -1426,16 +1456,16 @@ def get_arbitrar_order_SUPG_weighted_evolution_operator_coeffs(order, dx, dy):
     evolCoeffs[15] = right_der / dy
 
     ### pEq_pTerms
-    evolCoeffs[16] = 0.5 * second_der / dx
+    evolCoeffs[16] = alpha * h * second_der / dx**2
     evolCoeffs[17] = mass
 
     evolCoeffs[18] = mass
-    evolCoeffs[19] = 0.5 * second_der / dy
+    evolCoeffs[19] = alpha * h * second_der / dy**2
 
 
     # LUMPED VERSION : on divise chaque ligne de chaque opérateur par la somme des coeff de la même ligne de la masse
     # C'est en fait cet opérateur qui apparaît dans l'algorithme
-    for i in range(order):
+    for i in range(spacePolynOrder):
       somme_ligne_i_masse = np.sum(mass[:, i, :])
       evolCoeffs[:, :, i, :] = evolCoeffs[:, :, i, :] / somme_ligne_i_masse
 
@@ -1444,10 +1474,15 @@ def get_arbitrar_order_SUPG_weighted_evolution_operator_coeffs(order, dx, dy):
 
 
 # LES OPERATEURS SONT DECOMPOSES EN 3 : UN QUI AGIT EN +1, UN AUTRE EN 0 ET LE DERNIER EN -1
-def get_arbitrar_order_SUPG_weighted_mass_operator_coeffs(order):
-    massCoeffs = np.zeros((18, 3, order, order))
+def get_arbitrar_order_SUPG_weighted_mass_operator_coeffs(basisChoice, spacePolynOrder, dx, dy, alpha, h):
+    massCoeffs = np.zeros((18, 3, spacePolynOrder, spacePolynOrder))
 
-    mass, left_der = getLagElementsStandardOperators(order)[0:2]
+    if basisChoice == "basic" :
+      mass, left_der = getBasicLagElementsStandardOperators(spacePolynOrder)[0:2]
+    elif basisChoice == "LGLo" :
+      mass, left_der = getLGLoElementsStandardOperators(spacePolynOrder)[0:2]
+    else :
+      raise Exception("mass_operators_ceoffs : The basis choice is unreckognized")
 
     # U EQUATION
     ### uEq_uTerm : masses
@@ -1459,8 +1494,10 @@ def get_arbitrar_order_SUPG_weighted_mass_operator_coeffs(order):
     massCoeffs[3] = 0.
 
     ### uEq_pTerm : derivée simple en x et masse en y
-    massCoeffs[4] = 0.5 * left_der
+    massCoeffs[4] = alpha * h * left_der / dx
     massCoeffs[5] = mass
+    # massCoeffs[4] = 0.
+    # massCoeffs[5] = 0.
 
     # V EQUATION
     ### vEq_uTerm : rien
@@ -1473,16 +1510,22 @@ def get_arbitrar_order_SUPG_weighted_mass_operator_coeffs(order):
 
     ### vEq_pTerm : masse en x et derivée simple en y
     massCoeffs[10] = mass
-    massCoeffs[11] = 0.5 * left_der
+    massCoeffs[11] = alpha * h * left_der / dy
+    # massCoeffs[10] = 0.
+    # massCoeffs[11] = 0.
 
     # P EQUATION
     ### pEq_uTerm : derivée simple en x et masse en y
-    massCoeffs[12] = 0.5 * left_der
+    massCoeffs[12] = alpha * h * left_der / dx
     massCoeffs[13] = mass
+    # massCoeffs[12] = 0.
+    # massCoeffs[13] = 0.
 
     ### pEq_vTerm : masse en x et derivée simple en y
     massCoeffs[14] = mass
-    massCoeffs[15] = 0.5 * left_der
+    massCoeffs[15] = alpha * h * left_der / dy
+    # massCoeffs[14] = 0.
+    # massCoeffs[15] = 0.
 
     ### pEq_pTerm
     massCoeffs[16] = mass
@@ -1491,7 +1534,7 @@ def get_arbitrar_order_SUPG_weighted_mass_operator_coeffs(order):
 
     # LUMPED VERSION : on divise chaque ligne de chaque opérateur par la somme des coeff de la même ligne de la masse
     # C'est en fait cet opérateur qui apparaît dans l'algorithme
-    for i in range(order):
+    for i in range(spacePolynOrder):
       somme_ligne_i_masse = np.sum(mass[:, i, :])
       massCoeffs[:, :, i, :] = massCoeffs[:, :, i, :] / somme_ligne_i_masse
 

@@ -148,18 +148,18 @@ def test6(X, Y): # x^a . (1-x)^b . y^c . (1-y)^d
 
 
 
-def getTestFonctionLagrangeArbitrarOrderInterpolation(xL, xR, yL, yR, Nx, Ny, nGhost, order, testFonction):
+def getTestFonctionLagrangeArbitrarOrderInterpolation(xL, xR, yL, yR, Nx, Ny, nGhost, spacePolynOrder, testFonction):
     dx, dy = (xR - xL) / (1. * Nx), (yR - yL) / (1. * Ny)
 
-    fTab = np.zeros((6, Nx + 2 * nGhost, Ny + 2 * nGhost, order, order))
+    fTab = np.zeros((6, Nx + 2 * nGhost, Ny + 2 * nGhost, spacePolynOrder, spacePolynOrder))
     iMin, jMin = nGhost, nGhost
 
     for i in range(Nx + 2 * nGhost):
         for j in range(Ny + 2 * nGhost):
-            for k in range(order):
-                for l in range(order):
-                    x_ik = xL + (i - iMin + (1. * k) / order) * dx
-                    y_jl = yL + (j - jMin + (1. * l) / order) * dy
+            for k in range(spacePolynOrder):
+                for l in range(spacePolynOrder):
+                    x_ik = xL + (i - iMin + (1. * k) / spacePolynOrder) * dx
+                    y_jl = yL + (j - jMin + (1. * l) / spacePolynOrder) * dy
                     fTab[:, i, j, k, l] = testFonction(x_ik, y_jl)
 
     return fTab
@@ -174,12 +174,12 @@ def getTestFonctionLagrangeArbitrarOrderInterpolation(xL, xR, yL, yR, Nx, Ny, nG
 # U has x-first-derivative on the last component and x-second-derivative on the first component
 
 def evol_operator_first_component_operations_errors(q, iMin, iMax, jMin, jMax, dx, dy, f_x, f_xx, f_xy, \
-                                      grid, order, evolCoeffs):
+                                      grid, spacePolynOrder, evolCoeffs):
     
     iMin, iMax, jMin, jMax = grid.valid_grid
     dx = grid.steps[0]
 
-    divFlux = get_evaluation_of_arbitrar_order_SUPG_weighted_evolution_operator(q, iMin, iMax, jMin, jMax, order, evolCoeffs)
+    divFlux = get_evaluation_of_arbitrar_order_SUPG_weighted_evolution_operator(q, iMin, iMax, jMin, jMax, spacePolynOrder, evolCoeffs)
     # print("test periodicité divFlux", grid.isPeriodic(divFlux))
     # print("ecart divFlux bandes horizontales : ", np.max(divFlux[iMin, jMin:jMax+1] - divFlux[iMax, jMin:jMax+1]))
     # print("ecart divFlux bandes verticales : ", np.max(divFlux[iMin:iMax+1, jMin] - divFlux[iMin:iMax+1, jMax]))
@@ -195,11 +195,11 @@ def evol_operator_first_component_operations_errors(q, iMin, iMax, jMin, jMax, d
 
 
 def evol_operator_second_component_operations_errors(q, iMin, iMax, jMin, jMax, dx, dy, f_y, f_yy, f_xy, \
-                                       grid, order, evolCoeffs):
+                                       grid, spacePolynOrder, evolCoeffs):
     iMin, iMax, jMin, jMax = grid.valid_grid
     dy = grid.steps[1]
 
-    divFlux = get_evaluation_of_arbitrar_order_SUPG_weighted_evolution_operator(q, iMin, iMax, jMin, jMax, order, evolCoeffs)
+    divFlux = get_evaluation_of_arbitrar_order_SUPG_weighted_evolution_operator(q, iMin, iMax, jMin, jMax, spacePolynOrder, evolCoeffs)
 
     first_component_error = np.max(abs(- 2. * divFlux[iMin:iMax+1, jMin:jMax+1, :, :, 0] / dx - f_xy[iMin:iMax+1, jMin:jMax+1, :, :]))
 
@@ -212,11 +212,11 @@ def evol_operator_second_component_operations_errors(q, iMin, iMax, jMin, jMax, 
 
 
 def evol_operator_third_component_operations_errors(q, iMin, iMax, jMin, jMax, dx, dy, f_x, f_y, f_xx, f_yy, \
-                                      grid, order, evolCoeffs):
+                                      grid, spacePolynOrder, evolCoeffs):
     iMin, iMax, jMin, jMax = grid.valid_grid
     dx, dy = grid.steps
 
-    divFlux = get_evaluation_of_arbitrar_order_SUPG_weighted_evolution_operator(q, iMin, iMax, jMin, jMax, order, evolCoeffs)
+    divFlux = get_evaluation_of_arbitrar_order_SUPG_weighted_evolution_operator(q, iMin, iMax, jMin, jMax, spacePolynOrder, evolCoeffs)
 
     first_component_error = np.max(abs(divFlux[iMin:iMax+1, jMin:jMax+1, :, :, 0] - f_x[iMin:iMax+1, jMin:jMax+1, :, :]))
 
@@ -234,12 +234,12 @@ def evol_operator_third_component_operations_errors(q, iMin, iMax, jMin, jMax, d
 # MASS OPERATOR
 # U has x-first-derivative on the last component and x-second-derivative on the first component
 
-def mass_operator_first_component_operations_errors(q, iMin, iMax, jMin, jMax, dx, dy, f, f_x, grid, order, massCoeffs):
+def mass_operator_first_component_operations_errors(q, iMin, iMax, jMin, jMax, dx, dy, f, f_x, grid, spacePolynOrder, massCoeffs):
     
     iMin, iMax, jMin, jMax = grid.valid_grid
     dx = grid.steps[0]
 
-    mass = get_evaluation_of_arbitrar_order_SUPG_weighted_mass_operator(q, iMin, iMax, jMin, jMax, order, massCoeffs)
+    mass = get_evaluation_of_arbitrar_order_SUPG_weighted_mass_operator(q, iMin, iMax, jMin, jMax, spacePolynOrder, massCoeffs)
     # print("test periodicité divFlux", grid.isPeriodic(divFlux))
     # print("ecart divFlux bandes horizontales : ", np.max(divFlux[iMin, jMin:jMax+1] - divFlux[iMax, jMin:jMax+1]))
     # print("ecart divFlux bandes verticales : ", np.max(divFlux[iMin:iMax+1, jMin] - divFlux[iMin:iMax+1, jMax]))
@@ -254,11 +254,11 @@ def mass_operator_first_component_operations_errors(q, iMin, iMax, jMin, jMax, d
 
 
 
-def mass_operator_second_component_operations_errors(q, iMin, iMax, jMin, jMax, dx, dy, f, f_y, grid, order, massCoeffs):
+def mass_operator_second_component_operations_errors(q, iMin, iMax, jMin, jMax, dx, dy, f, f_y, grid, spacePolynOrder, massCoeffs):
     iMin, iMax, jMin, jMax = grid.valid_grid
     dy = grid.steps[1]
 
-    mass = get_evaluation_of_arbitrar_order_SUPG_weighted_mass_operator(q, iMin, iMax, jMin, jMax, order, massCoeffs)
+    mass = get_evaluation_of_arbitrar_order_SUPG_weighted_mass_operator(q, iMin, iMax, jMin, jMax, spacePolynOrder, massCoeffs)
 
     first_component_error = np.max(abs(mass[iMin:iMax+1, jMin:jMax+1, :, :, 0]))
 
@@ -270,11 +270,11 @@ def mass_operator_second_component_operations_errors(q, iMin, iMax, jMin, jMax, 
 
 
 
-def mass_operator_third_component_operations_errors(q, iMin, iMax, jMin, jMax, dx, dy, f, f_x, f_y, grid, order, massCoeffs):
+def mass_operator_third_component_operations_errors(q, iMin, iMax, jMin, jMax, dx, dy, f, f_x, f_y, grid, spacePolynOrder, massCoeffs):
     iMin, iMax, jMin, jMax = grid.valid_grid
     dx, dy = grid.steps
 
-    mass = get_evaluation_of_arbitrar_order_SUPG_weighted_mass_operator(q, iMin, iMax, jMin, jMax, order, massCoeffs)
+    mass = get_evaluation_of_arbitrar_order_SUPG_weighted_mass_operator(q, iMin, iMax, jMin, jMax, spacePolynOrder, massCoeffs)
 
     first_component_error = np.max(abs(- 2. * mass[iMin:iMax+1, jMin:jMax+1, :, :, 0] / dx - f_x[iMin:iMax+1, jMin:jMax+1, :, :]))
 
@@ -302,13 +302,16 @@ if (False) :
     xL, xR, yL, yR = 0., 1., 0., 1.
     Nx, Ny = 100, 100
     nGhost = 2
-    order = 1
+    spacePolynOrder = 1
+    alpha = 0.5
 
     iMin, iMax, jMin, jMax = nGhost, Nx + nGhost - 1, nGhost, Ny + nGhost - 1
     dx, dy = (xR - xL) / (1. * Nx), (yR - yL) / (1. * Ny)
+    h = max(dx, dy)
 
     coeffs = spatial_operators.extract_operators_improved(dx, dy)
-    evolCoeffs = spatial_operators.get_arbitrar_order_SUPG_weighted_evolution_operator_coeffs(order, dx, dy)
+    basisChoice = "basic"
+    evolCoeffs = spatial_operators.get_arbitrar_order_SUPG_weighted_evolution_operator_coeffs(basisChoice, spacePolynOrder, dx, dy, alpha, h)
 
     n1, n2 = -3, 3
     rng = np.random.default_rng()
@@ -320,19 +323,19 @@ if (False) :
     # var = XVEL
     # q_order_0 = np.zeros((Nx + 2 * nGhost, Ny + 2* nGhost, 3))
     # q_order_0[:, :, var] = q_test[:, :, var].copy()
-    # q_order_1 = np.zeros((Nx + 2 * nGhost, Ny + 2* nGhost, order, order, 3))
+    # q_order_1 = np.zeros((Nx + 2 * nGhost, Ny + 2* nGhost, spacePolynOrder, spacePolynOrder, 3))
     # q_order_1[:, :, 0, 0, var] = q_test[:, :, var].copy()
 
 
     q_order_0 = np.zeros((Nx + 2 * nGhost, Ny + 2* nGhost, 3))
     q_order_0 = q_test.copy()
-    q_order_1 = np.zeros((Nx + 2 * nGhost, Ny + 2* nGhost, order, order, 3))
+    q_order_1 = np.zeros((Nx + 2 * nGhost, Ny + 2* nGhost, spacePolynOrder, spacePolynOrder, 3))
     q_order_1[:, :, 0, 0] = q_test.copy()
 
     print("test mêmes qttés de départ : ", np.max(abs(q_order_0 - q_order_1[:, :, 0, 0, :])))
 
     divF_order0 = spatial_operators.get_optim_modif_SUPG_developped_divFlux(q_order_0, iMin, iMax, jMin, jMax, coeffs)
-    divF_order1 = spatial_operators.get_evaluation_of_arbitrar_order_SUPG_weighted_evolution_operator(q_order_1, iMin, iMax, jMin, jMax, order, evolCoeffs)
+    divF_order1 = spatial_operators.get_evaluation_of_arbitrar_order_SUPG_weighted_evolution_operator(q_order_1, iMin, iMax, jMin, jMax, spacePolynOrder, evolCoeffs)
 
     # comparaison entre les deux versions 
     print("comparaisons ordres 0 et 1 : 1e comp : ", np.max(abs(divF_order0[iMin:iMax+1, jMin:jMax+1, XVEL] - divF_order1[iMin:iMax+1, jMin:jMax+1, 0, 0, XVEL])) )
@@ -360,20 +363,23 @@ if (False) :
     yL, yR = 0., 1.
     Nx, Ny = 100, 100
     nGhost = 2
-    order = 3
-    NVis = order
+    spacePolynOrder = 3
+    NVis = spacePolynOrder
     iTest = 2
+    alpha = 0.5
 
 
     grid_params = {"domain_parameters" : {"xL" : xL, "xR" : xR, "yL" : yL, "yR" : yR}, "mesh_parameters" : {"Nx" : Nx, "Ny" : Ny, "nGhost" : nGhost}}
-    params = {"grid_parameters" : grid_params, "order" : order, "number_visualisation_points" : NVis}
+    params = {"grid_parameters" : grid_params, "order" : {"space_polyn_order" : spacePolynOrder}, "number_visualisation_points" : NVis}
 
     gridOp = grid_mod.gridOperator(params)
     iMin, iMax, jMin, jMax = gridOp.valid_grid
     dx, dy = gridOp.steps
-    evolCoeffs = get_arbitrar_order_SUPG_weighted_evolution_operator_coeffs(order, dx, dy)
+    h = gridOp.characteristic_size
+    basisChoice = "basic"
+    evolCoeffs = get_arbitrar_order_SUPG_weighted_evolution_operator_coeffs(basisChoice, spacePolynOrder, dx, dy, alpha, h)
 
-    Id = np.array([ np.zeros((order, order)), np.eye(order), np.zeros((order, order)) ])
+    Id = np.array([ np.zeros((spacePolynOrder, spacePolynOrder)), np.eye(spacePolynOrder), np.zeros((spacePolynOrder, spacePolynOrder)) ])
 
     if iTest == 1: ### TEST Identity :
         for i in range(20):
@@ -393,18 +399,18 @@ if (False) :
     n_raffinement = 10
 
     ### SLICE HORIZONTAL
-    NxRef = n_raffinement * Nx * order
+    NxRef = n_raffinement * Nx * spacePolynOrder
     Xref = np.linspace(xL, xR, NxRef+1)
     j_ref, l_ref = int(Ny / 2.), 0
 
     ### SLICE VERTICAL
-    NyRef = n_raffinement * Ny * order
+    NyRef = n_raffinement * Ny * spacePolynOrder
     Yref = np.linspace(yL, yR, NyRef+1)
     i_ref, k_ref = int(Nx / 2.), 0
 
-    vertical_index_ref_mesh = (j_ref * n_raffinement + (l_ref * n_raffinement) // order) * order + (l_ref * n_raffinement) % order
+    vertical_index_ref_mesh = (j_ref * n_raffinement + (l_ref * n_raffinement) // spacePolynOrder) * spacePolynOrder + (l_ref * n_raffinement) % spacePolynOrder
     y_ref = Yref[vertical_index_ref_mesh]
-    horizontal_index_ref_mesh = (i_ref * n_raffinement + (k_ref * n_raffinement) // order) * order + (k_ref * n_raffinement) % order
+    horizontal_index_ref_mesh = (i_ref * n_raffinement + (k_ref * n_raffinement) // spacePolynOrder) * spacePolynOrder + (k_ref * n_raffinement) % spacePolynOrder
     x_ref = Xref[horizontal_index_ref_mesh]
 
     XXref, YYref = np.meshgrid(Xref, Yref)
@@ -416,7 +422,7 @@ if (False) :
 
     testFonction = test6
 
-    f_HO_mesh, f_x_HO_mesh, f_y_HO_mesh, f_xx_HO_mesh, f_yy_HO_mesh, f_xy_HO_mesh = getTestFonctionLagrangeArbitrarOrderInterpolation(xL, xR, yL, yR, Nx, Ny, nGhost, order, testFonction)
+    f_HO_mesh, f_x_HO_mesh, f_y_HO_mesh, f_xx_HO_mesh, f_yy_HO_mesh, f_xy_HO_mesh = getTestFonctionLagrangeArbitrarOrderInterpolation(xL, xR, yL, yR, Nx, Ny, nGhost, spacePolynOrder, testFonction)
     f_ref_mesh, f_x_ref_mesh, f_y_ref_mesh, f_xx_ref_mesh, f_yy_ref_mesh, f_xy_ref_mesh = \
         testFonction(XXref, YYref)
 
@@ -429,15 +435,15 @@ if (False) :
     f_y_HO_mesh_flattened = getVisualisationData(f_y_HO_mesh, params)
 
 
-    q1, q2, q3 = np.zeros((3, Nx + 2*nGhost, Ny + 2*nGhost, order, order, 3))
+    q1, q2, q3 = np.zeros((3, Nx + 2*nGhost, Ny + 2*nGhost, spacePolynOrder, spacePolynOrder, 3))
     q1[:, :, :, :, 0] = f_HO_mesh
     q2[:, :, :, :, 1] = f_HO_mesh
     q3[:, :, :, :, 2] = f_HO_mesh
 
 
-    divFlux1 = get_evaluation_of_arbitrar_order_SUPG_weighted_evolution_operator(q1, iMin, iMax, jMin, jMax, order, evolCoeffs)
-    divFlux2 = get_evaluation_of_arbitrar_order_SUPG_weighted_evolution_operator(q2, iMin, iMax, jMin, jMax, order, evolCoeffs)
-    divFlux3 = get_evaluation_of_arbitrar_order_SUPG_weighted_evolution_operator(q3, iMin, iMax, jMin, jMax, order, evolCoeffs)
+    divFlux1 = get_evaluation_of_arbitrar_order_SUPG_weighted_evolution_operator(q1, iMin, iMax, jMin, jMax, spacePolynOrder, evolCoeffs)
+    divFlux2 = get_evaluation_of_arbitrar_order_SUPG_weighted_evolution_operator(q2, iMin, iMax, jMin, jMax, spacePolynOrder, evolCoeffs)
+    divFlux3 = get_evaluation_of_arbitrar_order_SUPG_weighted_evolution_operator(q3, iMin, iMax, jMin, jMax, spacePolynOrder, evolCoeffs)
 
     # print("test périodicité de divFlux1 : ")
     # print("écarts bords verticaux : ", np.max(abs(divFlux1[iMin, jMin:jMax+1, 0, :] - divFlux1[iMax+1, jMin:jMax+1, 0, :])))
@@ -477,9 +483,9 @@ if (False) :
                                     [f, f, f], \
                                     [f, f, f]])
         
-        divFluxes = np.array([[2. * divFlux1_2D[:, :, XVEL], 2. * divFlux2_2D[:, :, XVEL], divFlux3_2D[:, :, XVEL]], \
-                              [2. * divFlux1_2D[:, :, YVEL], 2. * divFlux2_2D[:, :, YVEL], divFlux3_2D[:, :, YVEL]], \
-                              [divFlux1_2D[:, :, PRES], divFlux2_2D[:, :, PRES], divFlux3_2D[:, :, PRES]]])
+        divFluxes = np.array([[divFlux1_2D[:, :, XVEL], divFlux2_2D[:, :, XVEL], divFlux3_2D[:, :, XVEL]      ], \
+                              [divFlux1_2D[:, :, YVEL], divFlux2_2D[:, :, YVEL], divFlux3_2D[:, :, YVEL]      ], \
+                              [divFlux1_2D[:, :, PRES], divFlux2_2D[:, :, PRES], 0.5 * divFlux3_2D[:, :, PRES]]])
 
 
     if iTest == 2: # Test x opérateurs (y operateurs = Id)
@@ -494,12 +500,12 @@ if (False) :
                                         [f_x_ref_mesh, f_ref_mesh, f_ref_mesh], \
                                         [f_x_ref_mesh, f_ref_mesh, - dx * f_xx_ref_mesh + f_ref_mesh]])
         exact_operators = np.array([[f_xx, f_x, f_x], \
-                                    [f_x, f, f], \
-                                    [f_x, f, - dx * f_xx + f]])
+                                    [f_x , f  , f  ], \
+                                    [f_x , f  , f_xx - f / (alpha * h)]])
         
-        divFluxes = np.array([[- 2. * divFlux1_2D[:, :, XVEL] / dx, - 2. * divFlux2_2D[:, :, XVEL] / dx,      divFlux3_2D[:, :, XVEL]], \
-                              [  2. * divFlux1_2D[:, :, YVEL]     ,   2. * divFlux2_2D[:, :, YVEL]     ,      divFlux3_2D[:, :, YVEL]], \
-                              [       divFlux1_2D[:, :, PRES]     ,        divFlux2_2D[:, :, PRES]     , 2. * divFlux3_2D[:, :, PRES]]])
+        divFluxes = np.array([[ - divFlux1_2D[:, :, XVEL] / (alpha * h), - divFlux2_2D[:, :, XVEL] / (alpha * h),   divFlux3_2D[:, :, XVEL]              ], \
+                              [   divFlux1_2D[:, :, YVEL]              ,   divFlux2_2D[:, :, YVEL]              ,   divFlux3_2D[:, :, YVEL]              ], \
+                              [   divFlux1_2D[:, :, PRES]              ,   divFlux2_2D[:, :, PRES]              , - divFlux3_2D[:, :, PRES] / (alpha * h)]])
             
 
 
@@ -514,13 +520,13 @@ if (False) :
         exact_operators_ref = np.array([[f_ref_mesh, f_y_ref_mesh, f_ref_mesh], \
                                         [f_y_ref_mesh, f_yy_ref_mesh, f_y_ref_mesh], \
                                         [f_ref_mesh, f_y_ref_mesh, - dy * f_yy_ref_mesh + f_ref_mesh]])
-        exact_operators = np.array([[f, f_y, f], \
-                                    [f_y, f_yy, f_y], \
-                                    [f, f_y, - dy * f_yy + f]])
+        exact_operators = np.array([[f  , f_y , f       ], \
+                                    [f_y, f_yy, f_y     ], \
+                                    [f  , f_y , f_yy - f / (alpha * h)]])
         
-        divFluxes = np.array([[  2. * divFlux1_2D[:, :, XVEL]     ,   2. * divFlux2_2D[:, :, XVEL]     ,      divFlux3_2D[:, :, XVEL]], \
-                              [- 2. * divFlux1_2D[:, :, YVEL] / dy, - 2. * divFlux2_2D[:, :, YVEL] / dy,      divFlux3_2D[:, :, YVEL]], \
-                              [       divFlux1_2D[:, :, PRES]     ,        divFlux2_2D[:, :, PRES]     , 2. * divFlux3_2D[:, :, PRES]]])
+        divFluxes = np.array([[   divFlux1_2D[:, :, XVEL]              ,   divFlux2_2D[:, :, XVEL]              ,   divFlux3_2D[:, :, XVEL]              ], \
+                              [ - divFlux1_2D[:, :, YVEL] / (alpha * h), - divFlux2_2D[:, :, YVEL] / (alpha * h),   divFlux3_2D[:, :, YVEL]              ], \
+                              [   divFlux1_2D[:, :, PRES]              ,   divFlux2_2D[:, :, PRES]              , - divFlux3_2D[:, :, PRES] / (alpha * h)]])
 
 
     elif iTest == 4:
@@ -536,11 +542,11 @@ if (False) :
                                         [f_x_ref_mesh, f_y_ref_mesh, f_xx_ref_mesh + f_yy_ref_mesh]])
         exact_operators = np.array([[f_xx, f_xy, f_x], \
                                     [f_xy, f_yy, f_y], \
-                                    [f_x, f_y, f_xx + f_yy]])
+                                    [f_x , f_y , f_xx + f_yy]])
         
-        divFluxes = np.array([[- 2. * divFlux1_2D[:, :, XVEL] / dx, - 2. * divFlux2_2D[:, :, XVEL] / dx,      divFlux3_2D[:, :, XVEL]], \
-                              [- 2. * divFlux1_2D[:, :, YVEL] / dy, - 2. * divFlux2_2D[:, :, YVEL] / dy,      divFlux3_2D[:, :, YVEL]], \
-                              [       divFlux1_2D[:, :, PRES]     ,        divFlux2_2D[:, :, PRES]     , - 2. * divFlux3_2D[:, :, PRES] / max(dx, dy)]])
+        divFluxes = np.array([[ - divFlux1_2D[:, :, XVEL] / (alpha * h), - divFlux2_2D[:, :, XVEL] / (alpha * h),   divFlux3_2D[:, :, XVEL]              ], \
+                              [ - divFlux1_2D[:, :, YVEL] / (alpha * h), - divFlux2_2D[:, :, YVEL] / (alpha * h),   divFlux3_2D[:, :, YVEL]              ], \
+                              [   divFlux1_2D[:, :, PRES]              ,   divFlux2_2D[:, :, PRES]              , - divFlux3_2D[:, :, PRES] / (alpha * h)]])
 
 
 
@@ -555,13 +561,13 @@ if (False) :
     # PLOTS
     if True :
     # if False :
-        vertical_index_ref_mesh = (j_ref * n_raffinement + l_ref * n_raffinement // order) * order + (l_ref * n_raffinement) % order
+        vertical_index_ref_mesh = (j_ref * n_raffinement + l_ref * n_raffinement // spacePolynOrder) * spacePolynOrder + (l_ref * n_raffinement) % spacePolynOrder
         y_ref = Yref[vertical_index_ref_mesh]
-        horizontal_index_ref_mesh = (i_ref * n_raffinement + k_ref * n_raffinement // order) * order + (k_ref * n_raffinement) % order
+        horizontal_index_ref_mesh = (i_ref * n_raffinement + k_ref * n_raffinement // spacePolynOrder) * spacePolynOrder + (k_ref * n_raffinement) % spacePolynOrder
         x_ref = Xref[horizontal_index_ref_mesh]
 
         for equationName, equation in var:
-            with PdfPages(f"Plots/divF/1D_slices_{equationName}_equation_order_{order}") as pdf:
+            with PdfPages(f"Plots/divF/1D_slices_{equationName}_equation_order_{spacePolynOrder}") as pdf:
                 for termName, term in var:
                     # exact operator 1D slices
                     exact_operator = exact_operators_ref[equation, term]
@@ -576,7 +582,7 @@ if (False) :
                     plt.figure()
                     plt.title(f"Slice horizontal [0, 1]x{{{y_ref}}}: {exact_operator_name}{termName} dans l'équation en {equationName}")
                     plt.plot(Xref, horizontal_slice, label="exact")
-                    plt.plot(Xref[::n_raffinement], approxOperator[:, j_ref*order + l_ref], label="approx")
+                    plt.plot(Xref[::n_raffinement], approxOperator[:, j_ref*spacePolynOrder + l_ref], label="approx")
                     plt.legend()
                     pdf.savefig()
                     plt.close()
@@ -585,7 +591,7 @@ if (False) :
                     plt.figure()
                     plt.title(f"Slice vertical {{{x_ref}}}x[0, 1]: {exact_operator_name}{termName} dans l'équation en {equationName}")
                     plt.plot(Yref, vertical_slice, label="exact")
-                    plt.plot(Yref[::n_raffinement], approxOperator[i_ref*order + k_ref, :], label="approx")
+                    plt.plot(Yref[::n_raffinement], approxOperator[i_ref*spacePolynOrder + k_ref, :], label="approx")
                     plt.legend()
                     pdf.savefig()
                     plt.close()
@@ -607,9 +613,10 @@ if (False) :
     xL, xR = 0., 1.
     yL, yR = 0., 1.
     nGhost = 2
-    order = 3
+    spacePolynOrder = 2
     grid_params = {"domain_parameters" : {"xL" : xL, "xR" : xR, "yL" : yL, "yR" : yR}, "mesh_parameters" : {"Nx" : 0, "Ny" : 0, "nGhost" : nGhost}}
-    params = {"grid_parameters" : grid_params, "order" : order}
+    params = {"grid_parameters" : grid_params, "order" : {"space_polyn_order" : spacePolynOrder}}
+    alpha = 0.5
     
     
     nList = [100, 200, 400, 800]
@@ -625,7 +632,9 @@ if (False) :
         gridOp = grid_mod.gridOperator(params)
         iMin, iMax, jMin, jMax = gridOp.valid_grid
         dx, dy = gridOp.steps
-        evolCoeffs = get_arbitrar_order_SUPG_weighted_evolution_operator_coeffs(order, dx, dy)
+        h = gridOp.characteristic_size
+        basisChoice = "basic"
+        evolCoeffs = get_arbitrar_order_SUPG_weighted_evolution_operator_coeffs(basisChoice, spacePolynOrder, dx, dy, alpha, h)
 
         # print("evolCoeffs : \n ", evolCoeffs)
 
@@ -634,10 +643,10 @@ if (False) :
         testFonction = test5
 
         f, f_x, f_y, f_xx, f_yy, f_xy = \
-            getTestFonctionLagrangeArbitrarOrderInterpolation(xL, xR, yL, yR, n, n, nGhost, order, testFonction)
+            getTestFonctionLagrangeArbitrarOrderInterpolation(xL, xR, yL, yR, n, n, nGhost, spacePolynOrder, testFonction)
 
 
-        q1, q2, q3 = np.zeros((3, n + 2 * nGhost, n + 2 * nGhost, order, order, 3))
+        q1, q2, q3 = np.zeros((3, n + 2 * nGhost, n + 2 * nGhost, spacePolynOrder, spacePolynOrder, 3))
         q1[:, :, :, :, 0] = f
         q2[:, :, :, :, 1] = f
         q3[:, :, :, :, 2] = f
@@ -645,13 +654,13 @@ if (False) :
         # FIRST COMPONENT OPERATIONS :
         Error_q1_1[k], Error_q1_2[k], Error_q1_3[k] = \
             evol_operator_first_component_operations_errors(q1, iMin, iMax, jMin, jMax, dx, dy, f_x, f_xx, f_xy, \
-                                                gridOp, order, evolCoeffs)
+                                                gridOp, spacePolynOrder, evolCoeffs)
         Error_q2_1[k], Error_q2_2[k], Error_q2_3[k] = \
             evol_operator_second_component_operations_errors(q2, iMin, iMax, jMin, jMax, dx, dy, f_y, f_yy, f_xy, \
-                                               gridOp, order, evolCoeffs)
+                                               gridOp, spacePolynOrder, evolCoeffs)
         Error_q3_1[k], Error_q3_2[k], Error_q3_3[k] = \
             evol_operator_third_component_operations_errors(q3, iMin, iMax, jMin, jMax, dx, dy, f_x, f_y, f_xx, f_yy, \
-                                              gridOp, order, evolCoeffs)
+                                              gridOp, spacePolynOrder, evolCoeffs)
 
         print("")
         print("nombre de points par côté : ", n)
@@ -664,10 +673,10 @@ if (False) :
     cross_term_u = "$\\partial_y \\partial_x u$"
     cross_term_v = "$\\partial_x \\partial_y v$"
     
-    with PdfPages(f"Plots/divF/test_operators_order_{order}") as pdf:
+    with PdfPages(f"Plots/divF/test_operators_order_{spacePolynOrder}") as pdf:
         # Résultats des opérations sur la première composante
         plt.figure()
-        plt.title(f"Erreurs en norme $L^{{\\infty}}$ sur les différentes composantes de $\\widetilde{{\\nabla}} f$ \n pour l'ordre {order} avec v = p = 0")
+        plt.title(f"Erreurs en norme $L^{{\\infty}}$ sur les différentes composantes de $\\widetilde{{\\nabla}} f$ \n pour l'ordre {spacePolynOrder} avec v = p = 0")
         plt.plot(hList, Error_q1_1, label="$\\partial^2_x u$", marker="o")
         plt.plot(hList, Error_q1_2, label=cross_term_u, marker="^")
         plt.plot(hList, Error_q1_3, label="$\\partial_x u$", marker="s")
@@ -682,7 +691,7 @@ if (False) :
 
         # Résultats des opérations sur la seonde composante
         plt.figure()
-        plt.title(f"Erreurs en norme $L^{{\\infty}}$ sur les différentes composantes de $\\widetilde{{\\nabla}} f$ \n pour l'ordre {order} avec u = p = 0")
+        plt.title(f"Erreurs en norme $L^{{\\infty}}$ sur les différentes composantes de $\\widetilde{{\\nabla}} f$ \n pour l'ordre {spacePolynOrder} avec u = p = 0")
         plt.plot(hList, Error_q2_1, label=cross_term_v, marker="o")
         plt.plot(hList, Error_q2_2, label="$\\partial^2_y v$", marker="^")
         plt.plot(hList, Error_q2_3, label="$\\partial_y v$", marker="s")
@@ -697,7 +706,7 @@ if (False) :
 
         # Résultats des opérations sur la troisième composante
         plt.figure()
-        plt.title(f"Erreurs en norme $L^{{\\infty}}$ sur les différentes composantes de $\\widetilde{{\\nabla}} f$ \n pour l'ordre {order} avec u = v = 0")
+        plt.title(f"Erreurs en norme $L^{{\\infty}}$ sur les différentes composantes de $\\widetilde{{\\nabla}} f$ \n pour l'ordre {spacePolynOrder} avec u = v = 0")
         plt.plot(hList, Error_q3_1, label="$\\partial_x p$", marker="o")
         plt.plot(hList, Error_q3_2, label="$\\partial_y p$", marker="^")
         plt.plot(hList, Error_q3_3, label="$\\Delta p$", marker="s")
@@ -731,20 +740,23 @@ if (False) :
     yL, yR = 0., 1.
     Nx, Ny = 100, 100
     nGhost = 2
-    order = 1
-    NVis = order
+    spacePolynOrder = 1
+    NVis = spacePolynOrder
     iTest = 4
+    alpha = 0.5
 
 
     grid_params = {"domain_parameters" : {"xL" : xL, "xR" : xR, "yL" : yL, "yR" : yR}, "mesh_parameters" : {"Nx" : Nx, "Ny" : Ny, "nGhost" : nGhost}}
-    params = {"grid_parameters" : grid_params, "order" : order, "number_visualisation_points" : NVis}
+    params = {"grid_parameters" : grid_params, "order" : {"space_polyn_order" : spacePolynOrder}, "number_visualisation_points" : NVis}
 
     gridOp = grid_mod.gridOperator(params)
     iMin, iMax, jMin, jMax = gridOp.valid_grid
     dx, dy = gridOp.steps
-    massCoeffs = get_arbitrar_order_SUPG_weighted_mass_operator_coeffs(order)
+    h = gridOp.characteristic_size
+    basisChoice = "basic"
+    massCoeffs = get_arbitrar_order_SUPG_weighted_mass_operator_coeffs(basisChoice, spacePolynOrder, dx, dy, alpha, h)
 
-    Id = np.array([ np.zeros((order, order)), np.eye(order), np.zeros((order, order)) ])
+    Id = np.array([ np.zeros((spacePolynOrder, spacePolynOrder)), np.eye(spacePolynOrder), np.zeros((spacePolynOrder, spacePolynOrder)) ])
 
     if iTest == 1: ### TEST Identity :
         for i in range(20):
@@ -764,18 +776,18 @@ if (False) :
     n_raffinement = 10
 
     ### SLICE HORIZONTAL
-    NxRef = n_raffinement * Nx * order
+    NxRef = n_raffinement * Nx * spacePolynOrder
     Xref = np.linspace(xL, xR, NxRef+1)
     j_ref, l_ref = int(Ny / 2.), 0
 
     ### SLICE VERTICAL
-    NyRef = n_raffinement * Ny * order
+    NyRef = n_raffinement * Ny * spacePolynOrder
     Yref = np.linspace(yL, yR, NyRef+1)
     i_ref, k_ref = int(Nx / 2.), 0
 
-    vertical_index_ref_mesh = (j_ref * n_raffinement + (l_ref * n_raffinement) // order) * order + (l_ref * n_raffinement) % order
+    vertical_index_ref_mesh = (j_ref * n_raffinement + (l_ref * n_raffinement) // spacePolynOrder) * spacePolynOrder + (l_ref * n_raffinement) % spacePolynOrder
     y_ref = Yref[vertical_index_ref_mesh]
-    horizontal_index_ref_mesh = (i_ref * n_raffinement + (k_ref * n_raffinement) // order) * order + (k_ref * n_raffinement) % order
+    horizontal_index_ref_mesh = (i_ref * n_raffinement + (k_ref * n_raffinement) // spacePolynOrder) * spacePolynOrder + (k_ref * n_raffinement) % spacePolynOrder
     x_ref = Xref[horizontal_index_ref_mesh]
 
     XXref, YYref = np.meshgrid(Xref, Yref, indexing="ij")
@@ -785,7 +797,7 @@ if (False) :
 
     testFonction = test6
 
-    f_HO_mesh, f_x_HO_mesh, f_y_HO_mesh, f_xx_HO_mesh, f_yy_HO_mesh, f_xy_HO_mesh = getTestFonctionLagrangeArbitrarOrderInterpolation(xL, xR, yL, yR, Nx, Ny, nGhost, order, testFonction)
+    f_HO_mesh, f_x_HO_mesh, f_y_HO_mesh, f_xx_HO_mesh, f_yy_HO_mesh, f_xy_HO_mesh = getTestFonctionLagrangeArbitrarOrderInterpolation(xL, xR, yL, yR, Nx, Ny, nGhost, spacePolynOrder, testFonction)
     f_ref_mesh, f_x_ref_mesh, f_y_ref_mesh, f_xx_ref_mesh, f_yy_ref_mesh, f_xy_ref_mesh = \
         testFonction(XXref, YYref)
     zeros_ref_mesh = np.zeros_like(XXref)
@@ -799,15 +811,15 @@ if (False) :
     f_y_HO_mesh_flattened = getVisualisationData(f_y_HO_mesh, params)
 
 
-    q1, q2, q3 = np.zeros((3, Nx + 2*nGhost, Ny + 2*nGhost, order, order, 3))
+    q1, q2, q3 = np.zeros((3, Nx + 2*nGhost, Ny + 2*nGhost, spacePolynOrder, spacePolynOrder, 3))
     q1[:, :, :, :, 0] = f_HO_mesh
     q2[:, :, :, :, 1] = f_HO_mesh
     q3[:, :, :, :, 2] = f_HO_mesh
 
 
-    mass1 = get_evaluation_of_arbitrar_order_SUPG_weighted_mass_operator(q1, iMin, iMax, jMin, jMax, order, massCoeffs)
-    mass2 = get_evaluation_of_arbitrar_order_SUPG_weighted_mass_operator(q2, iMin, iMax, jMin, jMax, order, massCoeffs)
-    mass3 = get_evaluation_of_arbitrar_order_SUPG_weighted_mass_operator(q3, iMin, iMax, jMin, jMax, order, massCoeffs)
+    mass1 = get_evaluation_of_arbitrar_order_SUPG_weighted_mass_operator(q1, iMin, iMax, jMin, jMax, spacePolynOrder, massCoeffs)
+    mass2 = get_evaluation_of_arbitrar_order_SUPG_weighted_mass_operator(q2, iMin, iMax, jMin, jMax, spacePolynOrder, massCoeffs)
+    mass3 = get_evaluation_of_arbitrar_order_SUPG_weighted_mass_operator(q3, iMin, iMax, jMin, jMax, spacePolynOrder, massCoeffs)
 
     # print("test périodicité de divFlux1 : ")
     # print("écarts bords verticaux : ", np.max(abs(divFlux1[iMin, jMin:jMax+1, 0, :] - divFlux1[iMax+1, jMin:jMax+1, 0, :])))
@@ -847,8 +859,8 @@ if (False) :
                                     [f, f, f], \
                                     [f, f, f]])
         
-        masses = np.array([[2. * mass1_2D[:, :, XVEL], 2. * mass2_2D[:, :, XVEL], mass3_2D[:, :, XVEL]], \
-                              [2. * mass1_2D[:, :, YVEL], 2. * mass2_2D[:, :, YVEL], mass3_2D[:, :, YVEL]], \
+        masses = np.array([   [mass1_2D[:, :, XVEL], mass2_2D[:, :, XVEL], mass3_2D[:, :, XVEL]], \
+                              [mass1_2D[:, :, YVEL], mass2_2D[:, :, YVEL], mass3_2D[:, :, YVEL]], \
                               [mass1_2D[:, :, PRES], mass2_2D[:, :, PRES], mass3_2D[:, :, PRES]]])
 
 
@@ -867,9 +879,9 @@ if (False) :
                                     [f_x, f, f], \
                                     [f_x, f, - dx * f_xx + f]])
         
-        masses = np.array([[- 2. * mass1_2D[:, :, XVEL] / dx, - 2. * mass2_2D[:, :, XVEL] / dx,      mass3_2D[:, :, XVEL]], \
-                              [  2. * mass1_2D[:, :, YVEL]     ,   2. * mass2_2D[:, :, YVEL]     ,      mass3_2D[:, :, YVEL]], \
-                              [       mass1_2D[:, :, PRES]     ,        mass2_2D[:, :, PRES]     , 2. * mass3_2D[:, :, PRES]]])
+        masses = np.array([ [  mass1_2D[:, :, XVEL]              , mass2_2D[:, :, XVEL], - mass3_2D[:, :, XVEL] / (alpha * h) ], \
+                            [  mass1_2D[:, :, YVEL]              , mass2_2D[:, :, YVEL],   mass3_2D[:, :, YVEL]               ], \
+                            [- mass1_2D[:, :, PRES] / (alpha * h), mass2_2D[:, :, PRES],   mass3_2D[:, :, PRES]               ]])
             
 
 
@@ -888,9 +900,9 @@ if (False) :
                                     [f_y, f_yy, f_y], \
                                     [f, f_y, - dy * f_yy + f]])
         
-        masses = np.array([[  2. * mass1_2D[:, :, XVEL]     ,   2. * mass2_2D[:, :, XVEL]     ,      mass3_2D[:, :, XVEL]], \
-                            [- 2. * mass1_2D[:, :, YVEL] / dy, - 2. * mass2_2D[:, :, YVEL] / dy,      mass3_2D[:, :, YVEL]], \
-                            [       mass1_2D[:, :, PRES]     ,        mass2_2D[:, :, PRES]     , 2. * mass3_2D[:, :, PRES]]])
+        masses = np.array([ [mass1_2D[:, :, XVEL],   mass2_2D[:, :, XVEL]              ,   mass3_2D[:, :, XVEL]               ], \
+                            [mass1_2D[:, :, YVEL],   mass2_2D[:, :, YVEL]              , - mass3_2D[:, :, YVEL] / (alpha * h) ], \
+                            [mass1_2D[:, :, PRES], - mass2_2D[:, :, PRES] / (alpha * h),   mass3_2D[:, :, PRES]               ]])
 
 
     elif iTest == 4:
@@ -908,9 +920,9 @@ if (False) :
                                     [zeros, f, f_y], \
                                     [f_x, f_y, f]])
         
-        masses = np.array([ [       mass1_2D[:, :, XVEL]      ,        mass2_2D[:, :, XVEL]      , - 2. * mass3_2D[:, :, XVEL] / dx ], \
-                            [       mass1_2D[:, :, YVEL]      ,        mass2_2D[:, :, YVEL]      , - 2. * mass3_2D[:, :, YVEL] / dy ], \
-                            [- 2. * mass1_2D[:, :, PRES] / dx , - 2. * mass2_2D[:, :, PRES] / dy ,        mass3_2D[:, :, PRES]      ]])
+        masses = np.array([ [  mass1_2D[:, :, XVEL]              ,   mass2_2D[:, :, XVEL]              , - mass3_2D[:, :, XVEL] / (alpha * h) ], \
+                            [  mass1_2D[:, :, YVEL]              ,   mass2_2D[:, :, YVEL]              , - mass3_2D[:, :, YVEL] / (alpha * h) ], \
+                            [- mass1_2D[:, :, PRES] / (alpha * h), - mass2_2D[:, :, PRES] / (alpha * h),   mass3_2D[:, :, PRES]               ]])
 
 
 
@@ -925,13 +937,13 @@ if (False) :
     # PLOTS
     if True :
     # if False :
-        vertical_index_ref_mesh = (j_ref * n_raffinement + l_ref * n_raffinement // order) * order + (l_ref * n_raffinement) % order
+        vertical_index_ref_mesh = (j_ref * n_raffinement + l_ref * n_raffinement // spacePolynOrder) * spacePolynOrder + (l_ref * n_raffinement) % spacePolynOrder
         y_ref = Yref[vertical_index_ref_mesh]
-        horizontal_index_ref_mesh = (i_ref * n_raffinement + k_ref * n_raffinement // order) * order + (k_ref * n_raffinement) % order
+        horizontal_index_ref_mesh = (i_ref * n_raffinement + k_ref * n_raffinement // spacePolynOrder) * spacePolynOrder + (k_ref * n_raffinement) % spacePolynOrder
         x_ref = Xref[horizontal_index_ref_mesh]
 
         for equationName, equation in var:
-            with PdfPages(f"Plots/mass/1D_slices_{equationName}_equation_order_{order}") as pdf:
+            with PdfPages(f"Plots/mass/1D_slices_{equationName}_equation_order_{spacePolynOrder}") as pdf:
                 for termName, term in var:
                     # exact operator 1D slices
                     exact_operator = exact_operators_ref[equation, term]
@@ -946,7 +958,7 @@ if (False) :
                     plt.figure()
                     plt.title(f"Slice horizontal [0, 1]x{{{y_ref}}}: {exact_operator_name}{termName} dans l'équation en {equationName}")
                     plt.plot(Xref, horizontal_slice, label="exact")
-                    plt.plot(Xref[::n_raffinement], approxOperator[:, j_ref*order + l_ref], label="approx")
+                    plt.plot(Xref[::n_raffinement], approxOperator[:, j_ref*spacePolynOrder + l_ref], label="approx")
                     plt.legend()
                     pdf.savefig()
                     plt.close()
@@ -955,7 +967,7 @@ if (False) :
                     plt.figure()
                     plt.title(f"Slice vertical {{{x_ref}}}x[0, 1]: {exact_operator_name}{termName} dans l'équation en {equationName}")
                     plt.plot(Yref, vertical_slice, label="exact")
-                    plt.plot(Yref[::n_raffinement], approxOperator[i_ref*order + k_ref, :], label="approx")
+                    plt.plot(Yref[::n_raffinement], approxOperator[i_ref*spacePolynOrder + k_ref, :], label="approx")
                     plt.legend()
                     pdf.savefig()
                     plt.close()
@@ -971,15 +983,15 @@ if (False) :
 
 
 
-if (True) :
-# if (False) :
+# if (True) :
+if (False) :
     # Creation of the grid_parameters dictionnary by hand
     xL, xR = 0., 1.
     yL, yR = 0., 1.
     nGhost = 2
-    order = 3
+    spacePolynOrder = 2
     grid_params = {"domain_parameters" : {"xL" : xL, "xR" : xR, "yL" : yL, "yR" : yR}, "mesh_parameters" : {"Nx" : 0, "Ny" : 0, "nGhost" : nGhost}}
-    params = {"grid_parameters" : grid_params, "order" : order}
+    params = {"grid_parameters" : grid_params, "order" : {"space_polyn_order" : spacePolynOrder}}
     
     
     nList = [100, 200, 400, 800]
@@ -995,7 +1007,8 @@ if (True) :
         gridOp = grid_mod.gridOperator(params)
         iMin, iMax, jMin, jMax = gridOp.valid_grid
         dx, dy = gridOp.steps
-        massCoeffs = get_arbitrar_order_SUPG_weighted_mass_operator_coeffs(order)
+        basisChoice = "basic"
+        massCoeffs = get_arbitrar_order_SUPG_weighted_mass_operator_coeffs(basisChoice, spacePolynOrder, dx, dy, alpha, h)
 
         # print("massCoeffs : \n ", massCoeffs)
 
@@ -1004,21 +1017,21 @@ if (True) :
         testFonction = test5
 
         f, f_x, f_y = \
-            getTestFonctionLagrangeArbitrarOrderInterpolation(xL, xR, yL, yR, n, n, nGhost, order, testFonction)[:3]
+            getTestFonctionLagrangeArbitrarOrderInterpolation(xL, xR, yL, yR, n, n, nGhost, spacePolynOrder, testFonction)[:3]
 
 
-        q1, q2, q3 = np.zeros((3, n + 2 * nGhost, n + 2 * nGhost, order, order, 3))
+        q1, q2, q3 = np.zeros((3, n + 2 * nGhost, n + 2 * nGhost, spacePolynOrder, spacePolynOrder, 3))
         q1[:, :, :, :, 0] = f
         q2[:, :, :, :, 1] = f
         q3[:, :, :, :, 2] = f
 
         # FIRST COMPONENT OPERATIONS :
         Error_q1_1[k], Error_q1_2[k], Error_q1_3[k] = \
-            mass_operator_first_component_operations_errors(q1, iMin, iMax, jMin, jMax, dx, dy, f, f_x, gridOp, order, massCoeffs)
+            mass_operator_first_component_operations_errors(q1, iMin, iMax, jMin, jMax, dx, dy, f, f_x, gridOp, spacePolynOrder, massCoeffs)
         Error_q2_1[k], Error_q2_2[k], Error_q2_3[k] = \
-            mass_operator_second_component_operations_errors(q2, iMin, iMax, jMin, jMax, dx, dy, f, f_y, gridOp, order, massCoeffs)
+            mass_operator_second_component_operations_errors(q2, iMin, iMax, jMin, jMax, dx, dy, f, f_y, gridOp, spacePolynOrder, massCoeffs)
         Error_q3_1[k], Error_q3_2[k], Error_q3_3[k] = \
-            mass_operator_third_component_operations_errors(q3, iMin, iMax, jMin, jMax, dx, dy, f, f_x, f_y, gridOp, order, massCoeffs)
+            mass_operator_third_component_operations_errors(q3, iMin, iMax, jMin, jMax, dx, dy, f, f_x, f_y, gridOp, spacePolynOrder, massCoeffs)
 
         print("")
         print("nombre de points par côté : ", n)
@@ -1028,10 +1041,10 @@ if (True) :
         print("")
         k += 1
     
-    with PdfPages(f"Plots/mass/test_operators_order_{order}") as pdf:
+    with PdfPages(f"Plots/mass/test_operators_order_{spacePolynOrder}") as pdf:
         # Résultats des opérations sur la première composante   
         plt.figure()
-        plt.title(f"Erreurs en norme $L^{{\\infty}}$ sur les différentes composantes de $\\mathcal{{A}} f$ \n pour l'ordre {order} avec v = p = 0")
+        plt.title(f"Erreurs en norme $L^{{\\infty}}$ sur les différentes composantes de $\\mathcal{{A}} f$ \n pour l'ordre {spacePolynOrder} avec v = p = 0")
         plt.plot(hList, Error_q1_1, label="$u$", marker="o")
         plt.plot(hList, Error_q1_2, label="0", marker="^")
         plt.plot(hList, Error_q1_3, label="$\\partial_x u$", marker="s")
@@ -1046,7 +1059,7 @@ if (True) :
 
         # Résultats des opérations sur la seonde composante
         plt.figure()
-        plt.title(f"Erreurs en norme $L^{{\\infty}}$ sur les différentes composantes de $\\mathcal{{A}} f$ \n pour l'ordre {order} avec u = p = 0")
+        plt.title(f"Erreurs en norme $L^{{\\infty}}$ sur les différentes composantes de $\\mathcal{{A}} f$ \n pour l'ordre {spacePolynOrder} avec u = p = 0")
         plt.plot(hList, Error_q2_1, label="0", marker="o")
         plt.plot(hList, Error_q2_2, label="$v$", marker="^")
         plt.plot(hList, Error_q2_3, label="$\\partial_y v$", marker="s")
@@ -1061,7 +1074,7 @@ if (True) :
 
         # Résultats des opérations sur la troisième composante
         plt.figure()
-        plt.title(f"Erreurs en norme $L^{{\\infty}}$ sur les différentes composantes de $\\mathcal{{A}} f$ \n pour l'ordre {order} avec u = v = 0")
+        plt.title(f"Erreurs en norme $L^{{\\infty}}$ sur les différentes composantes de $\\mathcal{{A}} f$ \n pour l'ordre {spacePolynOrder} avec u = v = 0")
         plt.plot(hList, Error_q3_1, label="$\\partial_x p$", marker="o")
         plt.plot(hList, Error_q3_2, label="$\\partial_y p$", marker="^")
         plt.plot(hList, Error_q3_3, label="$p$", marker="s")

@@ -13,22 +13,31 @@ import solutions
 # SMALL ANNEXE ROUINES
 def getSchemeKeys(params):
     schemeChoice = params["scheme_choice"]
-    
-    if (schemeChoice == -1):
-        scheme_name = "TEST"
-        scheme_short = "test_"
-    if (schemeChoice == 1):
-        scheme_name = "Upwind"
-        scheme_short = "UPW_"
-    elif (schemeChoice == 2):
-        scheme_name = "SUPG"
-        scheme_short = "SUPG_"
-    elif (schemeChoice == 3):
-        scheme_name = "SUPG modifié"
-        scheme_short = "modSUPG_"
-    elif (schemeChoice == 4):
-        scheme_name = "SUPG modifié optim"
-        scheme_short = "optModSUPG_"
+    spacePolynOrder, nbSubTimeSteps, nbCorrections = params["order"].values()
+
+    if spacePolynOrder == 0:
+        if (schemeChoice == -1):
+            scheme_name = "TEST"
+            scheme_short = "test_"
+        elif (schemeChoice == 1):
+            scheme_name = "Upwind"
+            scheme_short = "UPW_"
+        elif (schemeChoice == 2):
+            scheme_name = "SUPG"
+            scheme_short = "SUPG_"
+        elif (schemeChoice == 3):
+            scheme_name = "SUPG modifié"
+            scheme_short = "modSUPG_"
+        elif (schemeChoice == 4):
+            scheme_name = "SUPG modifié optim"
+            scheme_short = "optModSUPG_"
+    else :
+        if schemeChoice == 2 :
+            scheme_name = f"SUPG ordre (P{spacePolynOrder}, M{nbSubTimeSteps}, C{nbCorrections})"
+            scheme_short = f"SUPG_P{spacePolynOrder}M{nbSubTimeSteps}C{nbCorrections}_"
+        elif schemeChoice == 4 :
+            scheme_name = f"SUPG modifié ordre (P{spacePolynOrder}, M{nbSubTimeSteps}, C{nbCorrections})"
+            scheme_short = f"modSUPG_P{spacePolynOrder}M{nbSubTimeSteps}C{nbCorrections}_"
     
     return scheme_name, scheme_short
 
@@ -107,6 +116,7 @@ def choicePrints(params):
     Nx = params["grid_parameters"]["mesh_parameters"]["Nx"]
     Ny = params["grid_parameters"]["mesh_parameters"]["Ny"]
     finalTime, CFL = params["time_parameters"].values()
+    alpha = params["stabilisation_factor"]
 
     # prints
     print("")
@@ -117,6 +127,7 @@ def choicePrints(params):
     print(f"                 Maillage : {Nx} x {Ny}                            ")
     print(f"              Temps final : {finalTime}                            ")
     print(f"                      CFL : {CFL}                                  ")
+    print(f"                    alpha : {alpha}                                ")
     print(f"        Observable testée : {obs_name}                             ")
     print(f"Emplacement des résultats : {plotLoc}                              ")
     print(f"                                                                   ")
@@ -133,13 +144,13 @@ def choicePrints(params):
 
 
 def getVisualisationGrid(params):
-    order = params["order"]
+    spacePolynOrder = params["order"]["space_polyn_order"]
     xL, xR, yL, yR = params["grid_parameters"]["domain_parameters"].values()
     Nx, Ny, nGhost = params["grid_parameters"]["mesh_parameters"].values()
-    nVis = params["number_visualisation_points"]
+    nVis = params["plot_parameters"]["number_visualisation_points"]
 
     # Grille de visualisation
-    if order == 0:
+    if spacePolynOrder == 0:
         nVis = 1
 
     xCoord = np.linspace(xL, xR, Nx * nVis + 1)
@@ -154,7 +165,7 @@ def getVisualisationGrid(params):
 
 def makeSolutionsPlots(X, Y, q, q_prep, time, i_obs, params, h, pdf_writers, gif_writers):
     simulationChoice = params["simulation_choice"]
-    order = params["order"]
+    spacePolynOrder = params["order"]["space_polyn_order"]
 
     # Plot ou non de la solution exacte
     do_exact_pdf_plot = False
@@ -170,7 +181,7 @@ def makeSolutionsPlots(X, Y, q, q_prep, time, i_obs, params, h, pdf_writers, gif
     do_exact_plot = len(q_exact) > 0
 
     q_vis = q
-    if order > 0 :
+    if spacePolynOrder > 0 :
         q_vis = getVisualisationData(q, params)
 
 
@@ -290,11 +301,12 @@ def makeSolutions2DPlots(X, Y, q, do_exact_plot, q_exact, time, params, h, pdf_w
     # FIGURES FOR APPROXIMATE SOLUTIONS
     for var, filename, title, cmap in plots:
         fig, ax = plt.subplots()
-        cf = ax.contourf(X, Y, q[:, :, var], levels=numLevels, cmap=cmap)
-        ax.contour(X, Y, q[:, :, var], levels=numLevels, colors="k", linewidths=0.3)
-        # plt.colorbar(cf, ax=ax, label=title, format="%.2f")
-        plt.colorbar(cf, ax=ax, label=title)
-        ax.set_title(f"{simul_name} avec {scheme_name} : {title} à t={round(time, 1)} \n et h = {round(h, 5)}, CFL = {CFL}")
+        # cf = ax.contourf(X, Y, q[:, :, var], levels=numLevels, cmap=cmap)
+        # ax.contour(X, Y, q[:, :, var], levels=numLevels, colors="k", linewidths=0.3)
+        pcm = ax.pcolormesh(X, Y, q[:, :, var], cmap=cmap)
+        # plt.colorbar(cf, ax=ax, label=title)
+        plt.colorbar(pcm, ax=ax, label=title)
+        ax.set_title(f"{simul_name} avec {scheme_name} : \n {title} à t={round(time, 1)} et h = {round(h, 5)}, CFL = {CFL}")
         ax.set_xlabel("x")
         ax.set_ylabel("y")
         ax.set_aspect("equal")
@@ -732,24 +744,31 @@ def makeConvTestPlots(hList, supErrorsList, L2ErrorsList, params):
     simul_name, simul_short = getSimulKeys(params)
     finalTime, CFL = params["time_parameters"].values()
 
-    obs_name, obs_short = getObsKeys([7])
+    obs_name, obs_short = getObsKeys([8])
+    spacePolynOrder, nbSubTimeSteps, nbCorrections = params["order"].values()
+    if spacePolynOrder == 0 :
+        theoreticalOrder = 1
+    else :
+        theoreticalOrder = min(spacePolynOrder+1, 2*nbSubTimeSteps, nbCorrections)
+
+    alpha = params["stabilisation_factor"]
 
     plt.figure(3)
     var = [(XVEL, "u"), (YVEL, "v"), (PRES, "p")]
     with PdfPages(f"{plot_loc}{simul_short}{scheme_short}{obs_short}{CFL}.pdf") as pdf:
         for k, varName in var:
-            # Regression de pente 1 pour les log des deux jeux de données :
-            coeffSup = np.exp(np.sum(np.log(supErrorsList[:, k]) - np.log(hList)) / len(hList))
-            coeffL2 = np.exp(np.sum(np.log(L2ErrorsList[:, k]) - np.log(hList)) / len(hList))
+            # Regression de pente "order" pour les log des deux jeux de données :
+            coeffSup = np.exp(np.sum(np.log(supErrorsList[:, k]) - theoreticalOrder * np.log(hList)) / len(hList))
+            coeffL2 = np.exp(np.sum(np.log(L2ErrorsList[:, k]) - theoreticalOrder * np.log(hList)) / len(hList))
 
             # Plots
             fig, ax = plt.subplots()
-            ax.set_title(f"{simul_name} avec {scheme_name} : Erreurs sur {varName} " \
-                            f"\n en fct du pas d'espace avec Tf = {finalTime}, CFL = {CFL}")
+            ax.set_title(f"{simul_name} avec {scheme_name} : \n Erreurs sur {varName} " \
+                            f"à Tf = {finalTime} en fct de h avec CFL = {CFL}, $\\alpha$ = {alpha}")
             ax.plot(hList, supErrorsList[:, k], label="Erreur $L^{{\\infty}}$", color="blue")
-            ax.plot(hList, coeffSup * hList, label="pente 1", color="blue", linestyle="--", alpha=0.5)
+            ax.plot(hList, coeffSup * hList ** theoreticalOrder, label=f"ordre théorique {theoreticalOrder}", color="blue", linestyle="--", alpha=0.5)
             ax.plot(hList, L2ErrorsList[:, k], label="Erreur $L^2$", color="orange")
-            ax.plot(hList, coeffL2 * hList, label="pente 1", color="orange",  linestyle="--", alpha=0.5)
+            ax.plot(hList, coeffL2 * hList ** theoreticalOrder, label=f"ordre théorique {theoreticalOrder}", color="orange",  linestyle="--", alpha=0.5)
             ax.set_xscale("log")
             ax.set_xlabel("h")
             ax.set_yscale("log")
@@ -802,8 +821,8 @@ def getEvaluationOfBasisPolynomials(N, nVis):
 
 def getVisualisationData(q, params):
     Nx, Ny, nGhost = params["grid_parameters"]["mesh_parameters"].values()
-    order = params["order"]
-    nVis = params["number_visualisation_points"]
+    spacePolynOrder = params["order"]["space_polyn_order"]
+    nVis = params["plot_parameters"]["number_visualisation_points"]
 
     shape = np.shape(q)
     # print("shape of q : ", np.shape(q))
@@ -816,36 +835,36 @@ def getVisualisationData(q, params):
     # print("shape of qVis : ", np.shape(qVis))
 
 
-    if nVis == order : # LA GRILLE DE VISUALISATION COÏNCIDE AVEC CELLE D'ORDRE ELEVE : ON APPLATIT JUSTE LES DONNES DU MAILLAGE VALIDE
+    if nVis == spacePolynOrder : # LA GRILLE DE VISUALISATION COÏNCIDE AVEC CELLE D'ORDRE ELEVE : ON APPLATIT JUSTE LES DONNES DU MAILLAGE VALIDE
         for i in range(Nx):
           for j in range(Ny):
-            for k in range(order):
-              for l in range(order):
-                qVis[i * order + k, j * order + l] = q[i, j, k, l]
+            for k in range(spacePolynOrder):
+              for l in range(spacePolynOrder):
+                qVis[i * spacePolynOrder + k, j * spacePolynOrder + l] = q[i, j, k, l]
     
         for j in range(Ny):
-            qVis[Nx * order, j*order:(j+1)*order] = q[Nx, j, 0, :]
+            qVis[Nx * spacePolynOrder, j*spacePolynOrder:(j+1)*spacePolynOrder] = q[Nx, j, 0, :]
     
         for i in range(Nx):
-            qVis[i*order:(i+1)*order, Ny * order] = q[i, Ny, :, 0]
+            qVis[i*spacePolynOrder:(i+1)*spacePolynOrder, Ny * spacePolynOrder] = q[i, Ny, :, 0]
     
-        qVis[Nx * order, Ny * order] = q[Nx, Ny, 0, 0]
+        qVis[Nx * spacePolynOrder, Ny * spacePolynOrder] = q[Nx, Ny, 0, 0]
 
 
     else : # LA GRILLE DE VISUALISATION NE COÏNCIDE PAS AVEC CELLE D'ORDRE ELEVE : ON DOIT INTERPOLER
         # 2 : PROJECTION DES DONNEES SUR LA GRILLE CELLULE PAR CELLULE
         ### A : CALCUL DE LA MATRICE DES EVALUATION DES POLYNOMES DE BASE
-        evalMat = getEvaluationOfBasisPolynomials(order, nVis)
+        evalMat = getEvaluationOfBasisPolynomials(spacePolynOrder, nVis)
         evalMat_transpose = np.transpose(evalMat)
 
         ### B : INTERPOLATIONS DE LA SOLUTION SUR [xL, xR[ x [yL, yR[
-        q_cell_ij = np.zeros((order+1, order+1, 3))
+        q_cell_ij = np.zeros((spacePolynOrder+1, spacePolynOrder+1, 3))
         for i in range(Nx):
             for j in range(Ny):
                 q_cell_ij[:-1, :-1] = q[i, j]
-                q_cell_ij[order, :-1] = q[i + 1, j, 0, :]
-                q_cell_ij[:-1, order] = q[i, j + 1, :, 0]
-                q_cell_ij[order, order] = q[i + 1, j + 1, 0, 0]
+                q_cell_ij[spacePolynOrder, :-1] = q[i + 1, j, 0, :]
+                q_cell_ij[:-1, spacePolynOrder] = q[i, j + 1, :, 0]
+                q_cell_ij[spacePolynOrder, spacePolynOrder] = q[i + 1, j + 1, 0, 0]
 
                 for var in range(3):
                     qVis[i * nVis : (i+1) * nVis, j * nVis : (j+1) * nVis, var] = evalMat_transpose @ q_cell_ij[:, :, var] @ evalMat

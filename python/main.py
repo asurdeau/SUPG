@@ -42,7 +42,8 @@ if __name__ == "__main__":
 
     i_obs_list = np.array(params["observables_choices"])
     if (any(i_obs_list == 8)) :
-        getConvergenceTest(params)
+        nList = params["nList"]
+        getConvergenceTest(nList, params)
 
     elif (any(i_obs_list == 9)):
         print()
