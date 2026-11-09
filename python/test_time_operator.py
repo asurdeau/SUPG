@@ -31,7 +31,7 @@ import time_operators
 
 
 # LINEAR SYSTEM OF DECOUPLED EQUATIONS
-def getTest1Coefficients(basisChoice, spacePolynOrder, lamb):
+def getTest1Coefficients(basisChoice, modificationChoice, spacePolynOrder, lamb):
     evolCoeffs = np.zeros((20, 3, spacePolynOrder, spacePolynOrder)) 
     massCoeffs = np.zeros((20, 3, spacePolynOrder, spacePolynOrder))
 
@@ -56,7 +56,7 @@ def getTest1Solution(q, lamb, time, X, Y):
 
 
 # LINEAR SYSTEM OF COUPLED EQUATIONS : ROTATION AROUND omega
-def getTest2Coefficients(basisChoice, spacePolynOrder, omega):
+def getTest2Coefficients(basisChoice, modificationChoice, spacePolynOrder, omega):
     a, b, c = omega
     evolCoeffs = np.zeros((20, 3, spacePolynOrder, spacePolynOrder)) 
     massCoeffs = np.zeros((20, 3, spacePolynOrder, spacePolynOrder))
@@ -113,7 +113,7 @@ def getHeunUpdate(q, M, dt):
 
 
 # LINEAR SYSTEM OF DECOUPLED EQUATIONS BUT WITH MASS MATRICES
-def getTest3Coefficients(basisChoice, spacePolynOrder, dx, dy, alpha, h, lamb):
+def getTest3Coefficients(basisChoice, modificationChoice, spacePolynOrder, dx, dy, alpha, h, lamb):
     evolCoeffs = np.zeros((20, 3, spacePolynOrder, spacePolynOrder)) 
     massCoeffs = np.zeros((20, 3, spacePolynOrder, spacePolynOrder))
 
@@ -183,7 +183,7 @@ if (False) :
     ### basis and order
     spacePolynOrder = 2
     basisChoice = "basic"
-    evolCoeffs, massCoeffs = getTestCoefficients(basisChoice, spacePolynOrder, params)
+    modificationChoice = ""
 
     ### test choice
     testChoice = 3
@@ -238,7 +238,7 @@ if (False) :
 
     
     # Operators coefficients depending on the choice
-    evolCoeffs, massCoeffs = getTestCoefficients(basisChoice, spacePolynOrder, params)
+    evolCoeffs, massCoeffs = getTestCoefficients(basisChoice, modificationChoice, spacePolynOrder, params)
 
 
     # OBSERVABLES INITIALISATION

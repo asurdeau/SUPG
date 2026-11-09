@@ -15,7 +15,7 @@ class gridOperator:
         xL, xR, yL, yR = params["grid_parameters"]["domain_parameters"].values()
         spacePolynOrder = params["order"]["space_polyn_order"]
 
-        self.valid_grid = nGhost, Nx + nGhost - 1, nGhost, Ny + nGhost - 1
+        self.validGridIndices = nGhost, Nx + nGhost - 1, nGhost, Ny + nGhost - 1
 
         dx, dy = (xR - xL) / (1. * Nx), (yR - yL) / (1. * Ny)
         self.steps = dx, dy
@@ -29,8 +29,7 @@ class gridOperator:
         X, Y = np.meshgrid(xCoord, yCoord, indexing="ij")
 
         if spacePolynOrder == 0 :
-            self.xValidGrid = X
-            self.yValidGrid = Y
+            self.validGrid = X, Y
 
         else :
             X_HO, Y_HO = np.zeros( ((2, ) + np.shape(X) + (spacePolynOrder, spacePolynOrder,)) )
@@ -40,14 +39,13 @@ class gridOperator:
                     X_HO[:, :, k, l] = X + (1. * k) / spacePolynOrder * dx
                     Y_HO[:, :, k, l] = Y + (1. * l) / spacePolynOrder * dy
 
-            self.xValidGrid = X_HO
-            self.yValidGrid = Y_HO
+            self.validGrid = X_HO, Y_HO
 
 
     
     # REMEMBER : iMax's value is the same as iMin one's 
     def periodize(self, q) :
-        iMin, iMax, jMin, jMax = self.valid_grid
+        iMin, iMax, jMin, jMax = self.validGridIndices
         nGhost = iMin
 
         # BANDES
@@ -82,7 +80,7 @@ class gridOperator:
 
     # REMEMBER : iMax's value is the same as iMin one's 
     def dirichlet(self, q) :
-        iMin, iMax, jMin, jMax = self.valid_grid
+        iMin, iMax, jMin, jMax = self.validGridIndices
 
 
         # Dirichlet homogène 0 pour les vitesses
@@ -117,7 +115,7 @@ class gridOperator:
 
     
     def isPeriodic(self, q) :
-        iMin, iMax, jMin, jMax = self.valid_grid
+        iMin, iMax, jMin, jMax = self.validGridIndices
         nGhost = iMin
 
         # BANDES

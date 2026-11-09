@@ -13,28 +13,31 @@ grid_parameters :
 
 time_parameters : 
   end_time : 1.
-  CFL_number : 0.1
+  CFL_number : 0.492
 
 
 
 # nList : [10, 20, 40, 80, 160]
-nList : [20, 40, 80, 160, 320]
+nList : [20, 40, 80, 160]
 
 
 
 scheme_choice : 4      # 1 : CLASSICAL FV UPWIND || 2 : LUMPED SUPG || 3 : "À la carte" lumped SUPG || 4 : "À la carte + factorisé" lumped SUPG  
                        # -1 : test
 
-order :
-  space_polyn_order : 2              # 0 : 1st order w 1st order only routines, 1 : 1st order w arbitrar order routines, etc...
-  sub_time_steps : 1                     # Number of subtime nodes : WE DO NOT COUNT tn AS A NODE !!!
-  correction_number : 2
+order :    # The theoretical order of DeC is min(space_polyn_order+1, 2*sub_time_steps, correction_number)
+  space_polyn_order : 3              # 0 : 1st order w 1st order only routines, 1 : 1st order w arbitrar order routines, etc...
+  sub_time_steps : 2                 # Number of sub timesteps !! 
+  correction_number : 3
 
 
 basis_choice : "basic"               # "basic", "LGLo"
 
 
-stabilisation_factor : 0.005
+modifcation_choice : ""                # "", "highest_accuracy", "SP", "test"
+
+
+stabilisation_factor : 0.089
 
 
 observables_choices : [8]                # 1: 1d Plots of solutions || 2: 2d Plots of solutions || 3: 2d Plots of norm of the difference
@@ -69,10 +72,10 @@ solution_parameters :
 
 plot_parameters :
   # Common parameters
-  plot_loc : "Plots/Tests/"
+  plot_loc : "Plots/Tests/smooth_flow"
   # 2d and 1d plots parameters
   nb_plots : 11             # Counting the initial one ! If < 1 no gif !
-  number_visualisation_points : 2
+  number_visualisation_points : 5
   do_pdf_plot : y           # y -> yes || anything else -> no (no "" but still counted as a string)
   do_exact_pdf_plot : y
   do_gif_plot : 

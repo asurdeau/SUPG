@@ -21,7 +21,7 @@ import time_operators
 # CONSTANT IN SPACE DATA
 
 # LINEAR SYSTEM OF DECOUPLED EQUATIONS
-def getTest1Coefficients(basisChoice, spacePolynOrder, lamb):
+def getTest1Coefficients(basisChoice, modificationChoice, spacePolynOrder, lamb):
     evolCoeffs = np.zeros((20, 3, spacePolynOrder, spacePolynOrder)) 
     massCoeffs = np.zeros((20, 3, spacePolynOrder, spacePolynOrder))
 
@@ -46,7 +46,7 @@ def getTest1Solution(q, lamb, time, X, Y):
 
 
 # LINEAR SYSTEM OF COUPLED EQUATIONS : ROTATION AROUND omega
-def getTest2Coefficients(basisChoice, spacePolynOrder, omega):
+def getTest2Coefficients(basisChoice, modificationChoice, spacePolynOrder, omega):
     a, b, c = omega
     evolCoeffs = np.zeros((20, 3, spacePolynOrder, spacePolynOrder)) 
     massCoeffs = np.zeros((20, 3, spacePolynOrder, spacePolynOrder))
@@ -100,12 +100,12 @@ def getTest2Solution(q, omega, time, X, Y):
 # NON CONSTANT IN SPACE DATA
 
 # LINEAR SYSTEM OF DECOUPLED EQUATIONS BUT WITH MASS MATRICES
-def getTest3Coefficients(basisChoice, spacePolynOrder, dx, dy, alpha, h, lamb):
+def getTest3Coefficients(basisChoice, modificationChoice, spacePolynOrder, dx, dy, alpha, h, lamb):
     evolCoeffs = np.zeros((20, 3, spacePolynOrder, spacePolynOrder)) 
     massCoeffs = np.zeros((20, 3, spacePolynOrder, spacePolynOrder))
 
     Id = np.array([np.zeros((spacePolynOrder, spacePolynOrder)), np.eye(spacePolynOrder), np.zeros((spacePolynOrder, spacePolynOrder))])
-    mass = spatial_operators.get_arbitrar_order_SUPG_weighted_mass_operator_coeffs(basisChoice, spacePolynOrder, dx, dy, alpha, h)[0]
+    mass = spatial_operators.get_arbitrar_order_SUPG_weighted_mass_operator_coeffs(basisChoice, modificationChoice, spacePolynOrder, dx, dy, alpha, h)[0]
 
     listCoeffs = [0, 8, 16]
     for i in listCoeffs :
@@ -127,14 +127,14 @@ def getTest3Solution(q, lamb, time, X, Y):
 
 
 # LINEAR SYSTEM OF COUPLED EQUATIONS : ROTATION AROUND omega
-def getTest4Coefficients(basisChoice, spacePolynOrder, dx, dy, alpha, h, omega):
+def getTest4Coefficients(basisChoice, modificationChoice, spacePolynOrder, dx, dy, alpha, h, omega):
     a, b, c = omega
     evolCoeffs = np.zeros((20, 3, spacePolynOrder, spacePolynOrder)) 
     massCoeffs = np.zeros((20, 3, spacePolynOrder, spacePolynOrder))
 
     
     Id = np.array([np.zeros((spacePolynOrder, spacePolynOrder)), np.eye(spacePolynOrder), np.zeros((spacePolynOrder, spacePolynOrder))])
-    mass = spatial_operators.get_arbitrar_order_SUPG_weighted_mass_operator_coeffs(basisChoice, spacePolynOrder, dx, dy, alpha, h)[0]
+    mass = spatial_operators.get_arbitrar_order_SUPG_weighted_mass_operator_coeffs(basisChoice, modificationChoice, spacePolynOrder, dx, dy, alpha, h)[0]
 
     # mass : identity only
     listCoeffs = [0, 1, 8, 9, 16, 17]
@@ -184,12 +184,12 @@ def getTest4Solution(q, omega, time, X, Y):
 # DECOUPLED LINEAR ADVECTIONS
 
 # 1D x-advection
-def getTest5Coefficients(basisChoice, spacePolynOrder, dx, dy, alpha, h, c):
+def getTest5Coefficients(basisChoice, modificationChoice, spacePolynOrder, dx, dy, alpha, h, c):
     evolCoeffs = np.zeros((20, 3, spacePolynOrder, spacePolynOrder)) 
     massCoeffs = np.zeros((20, 3, spacePolynOrder, spacePolynOrder))
 
     Id = np.array([np.zeros((spacePolynOrder, spacePolynOrder)), np.eye(spacePolynOrder), np.zeros((spacePolynOrder, spacePolynOrder))])
-    coeffs = spatial_operators.get_arbitrar_order_SUPG_weighted_evolution_operator_coeffs(basisChoice, spacePolynOrder, dx, dy, alpha, h)
+    coeffs = spatial_operators.get_arbitrar_order_SUPG_weighted_evolution_operator_coeffs(basisChoice, modificationChoice, spacePolynOrder, dx, dy, alpha, h)
 
     mass = coeffs[1].copy()
     right_der = coeffs[4].copy()
@@ -347,12 +347,12 @@ def getDeCUpdate_ADVECTION(q, dt, spacePolynOrder, nbSubTimeSteps, nbCorrections
 
 
 # Here, we only multiply the derivatives by the corresponding components of the velocity
-def getTest6Coefficients(basisChoice, spacePolynOrder, dx, dy, alpha, h, c):
+def getTest6Coefficients(basisChoice, modificationChoice, spacePolynOrder, dx, dy, alpha, h, c):
     evolCoeffs = np.zeros((20, 3, spacePolynOrder, spacePolynOrder)) 
     massCoeffs = np.zeros((20, 3, spacePolynOrder, spacePolynOrder))
     
-    evolCoeffs = spatial_operators.get_arbitrar_order_SUPG_weighted_evolution_operator_coeffs(basisChoice, spacePolynOrder, dx, dy, alpha, h)
-    massCoeffs = spatial_operators.get_arbitrar_order_SUPG_weighted_evolution_operator_coeffs(basisChoice, spacePolynOrder, dx, dy, alpha, h)
+    evolCoeffs = spatial_operators.get_arbitrar_order_SUPG_weighted_evolution_operator_coeffs(basisChoice, modificationChoice, spacePolynOrder, dx, dy, alpha, h)
+    massCoeffs = spatial_operators.get_arbitrar_order_SUPG_weighted_evolution_operator_coeffs(basisChoice, modificationChoice, spacePolynOrder, dx, dy, alpha, h)
 
 
     cx, cy = c[0], c[1]
@@ -622,6 +622,61 @@ if (False) :
 
 
 
+def getAdaptedTimeStepAndCFL(basisChoice, modificationChoice, alpha, CFL):
+    if basisChoice == "basic" :
+        if modificationChoice == "" :
+            if spacePolynOrder == 1 :
+                alpha = 0.588
+                CFL = 1.701
+            elif spacePolynOrder == 2 :
+                alpha = 0.229
+                CFL = 0.492
+            elif spacePolynOrder == 3 :
+                alpha = 0.089
+                CFL = 0.492
+        elif modificationChoice == "highest_accuracy" :
+            if spacePolynOrder == 1 :
+                alpha = 0.588
+                CFL = 1.701
+            elif spacePolynOrder == 3 :
+                alpha = 0.089
+                CFL = 0.492
+        else :
+            if spacePolynOrder == 1 :
+                alpha = 0.588
+                CFL = 1.701
+            elif spacePolynOrder == 2 :
+                alpha = 0.229
+                CFL = 0.492
+            elif spacePolynOrder == 3 :
+                alpha = 0.089
+                CFL = 0.492
+        
+    elif basisChoice == "LGLo" :
+        if modificationChoice == "" :
+            if spacePolynOrder == 1 :
+                alpha = 0.588
+                CFL = 1.701
+            elif spacePolynOrder == 2 :
+                alpha = 0.081
+                CFL = 1.0
+            elif spacePolynOrder == 3 :
+                alpha = 0.041
+                CFL = 0.588
+
+        else :
+            if spacePolynOrder == 1 :
+                alpha = 0.588
+                CFL = 1.701
+            elif spacePolynOrder == 2 :
+                alpha = 0.229
+                CFL = 0.492
+            elif spacePolynOrder == 3 :
+                alpha = 0.089
+                CFL = 0.492
+
+
+    return alpha, CFL
 
 ####################################################################################################################
 
@@ -640,6 +695,8 @@ if (True) :
     ### meshes 
     xL, xR, yL, yR = 0., 1., 0., 1.
     nList = np.array(10**(np.linspace(1, 2, 5)), dtype='int')
+    # nList = np.array(10**(np.linspace(1, 2, 4, endpoint=False)), dtype='int')
+    print("nList : ", nList)
     NxList = nList
     NyList = nList
     dxList = (xR - xL) / NxList
@@ -651,16 +708,19 @@ if (True) :
     finalTime = 1.
 
     ### stabilisation parameters
-    alpha = 0.5
-    CFL = 0.2
+    alpha = 0.005
+    CFL = 0.1
 
     ### basis and order
-    spacePolynOrder = 3
-    nbSubTimeSteps = 4
-    nbCorrections = 4
+    spacePolynOrder = 2
+    nbSubTimeSteps = 3
+    nbCorrections = 5
     basisChoice = "basic"
+    modificationChoice = "highest_accuracy"
 
-    ### test choice
+    ### test choice : 
+    # 1: exp(lambda t) EDO || 2: 3D rotation EDO || 3: exp(lambd t) EDO w/ mass || 4: 3D rotation EDO w/ mass
+    # 5: 1D linear uncoupled system (3D) advection || 6: 2D linear scalar advection  
     testChoice = 5
 
     ### initial data
@@ -728,6 +788,14 @@ if (True) :
 
     simuIndex = 0
 
+    if (testChoice == 5) :
+        c = params
+        print("adaptation de alpha et CFL selon la base et l'ordre : ")
+        # alpha, CFL = getAdaptedTimeStepAndCFL(basisChoice, modificationChoice, alpha, CFL)
+        print("alpha : ", alpha)
+        print("CFL : ", CFL)
+        print()
+
     for i in range(len(nList)) :
 
         Nx = NxList[i]
@@ -743,19 +811,6 @@ if (True) :
         # Adaptations of stabilisation parameters and dt
         if (testChoice == 5) :
 
-            c = params
-
-            print("adaptation de alpha et CFL selon l'ordre : ")
-            if spacePolynOrder == 1 :
-                alpha = 0.588
-                CFL = 1.701
-            if spacePolynOrder == 2 :
-                alpha = 0.229
-                CFL = 0.492
-            if spacePolynOrder == 3 :
-                alpha = 0.089
-                CFL = 0.492
-            
             print("Adpatation de dx selon la condition CFL dt < dx / (2 |c|)")
             dt = CFL * min(dx, dy) / (2. * abs(c))
             print("Vérification de la condition CFL : ", dt < dx / (2 * abs(c)))
@@ -768,7 +823,7 @@ if (True) :
 
 
         # "4d" mesh creation for solutions
-        evolCoeffs, massCoeffs = getTestCoefficients(basisChoice, spacePolynOrder, dx, dy, alpha, h, params)
+        evolCoeffs, massCoeffs = getTestCoefficients(basisChoice, modificationChoice, spacePolynOrder, dx, dy, alpha, h, params)
         iMin, iMax, jMin, jMax = nGhost, Nx + nGhost - 1, nGhost, Ny + nGhost - 1
         xCoord = np.linspace(xL - dx * nGhost, xR + dx * nGhost, Nx + 2*nGhost, endpoint=False)
         yCoord = np.linspace(yL - dy * nGhost, yR + dy * nGhost, Ny + 2*nGhost, endpoint=False)
@@ -821,15 +876,19 @@ if (True) :
         # Computation of observation
         if testChoice == 6 :
             u_finalTime_sup_errors[simuIndex] = np.max(abs(q_approx - q_exact))
+            print("erreur sup : ", u_finalTime_sup_errors[simuIndex])
             u_finalTime_L2_errors[simuIndex] = np.sqrt( dx / spacePolynOrder * dy / spacePolynOrder * np.sum((q_approx[:, :, :, :] - q_exact[:, :, :, :])**2) )
+            print("erreur L2 : ", u_finalTime_L2_errors[simuIndex])
         else : 
             u_finalTime_sup_errors[simuIndex] = np.max(abs(q_approx[:, :, :, :, XVEL] - q_exact[:, :, :, :, XVEL]))
             v_finalTime_sup_errors[simuIndex] = np.max(abs(q_approx[:, :, :, :, YVEL] - q_exact[:, :, :, :, YVEL]))
             p_finalTime_sup_errors[simuIndex] = np.max(abs(q_approx[:, :, :, :, PRES] - q_exact[:, :, :, :, PRES]))
+            print("erreur sup : ", max(u_finalTime_sup_errors[simuIndex], v_finalTime_sup_errors[simuIndex], p_finalTime_sup_errors[simuIndex]))
 
             u_finalTime_L2_errors[simuIndex] = np.sqrt( dx / spacePolynOrder * dy / spacePolynOrder * np.sum((q_approx[:, :, :, :, XVEL] - q_exact[:, :, :, :, XVEL])**2) )
             v_finalTime_L2_errors[simuIndex] = np.sqrt( dx / spacePolynOrder * dy / spacePolynOrder * np.sum((q_approx[:, :, :, :, YVEL] - q_exact[:, :, :, :, YVEL])**2) )
             p_finalTime_L2_errors[simuIndex] = np.sqrt( dx / spacePolynOrder * dy / spacePolynOrder * np.sum((q_approx[:, :, :, :, PRES] - q_exact[:, :, :, :, PRES])**2) )
+            print("erreur L2 : ", np.sqrt(u_finalTime_L2_errors[simuIndex]**2 + v_finalTime_L2_errors[simuIndex]**2 + p_finalTime_L2_errors[simuIndex]**2))
 
 
         simuIndex += 1
@@ -871,7 +930,7 @@ if (True) :
     ### Exact values in text file
     if testChoice == 6 :
         with open(f"{plotsLocation}Test_{testChoice}_Conv_DeC_P{spacePolynOrder}M{nbSubTimeSteps}C{nbCorrections}.txt", 'a') as f:
-            f.write(f"=== Test de DeC (P{spacePolynOrder}, M{nbSubTimeSteps}, C{nbCorrections}) sur l'EDO {resultTitle} et q0 ~ {round(u0, 3)}  ===" + "\n" * 2)
+            f.write(f"=== Test de {basisChoice} {modificationChoice} (P{spacePolynOrder}, M{nbSubTimeSteps}, C{nbCorrections}) sur l'EDP {resultTitle} et q0 ~ {round(u0, 3)}  ===" + "\n" * 2)
             f.write(f"{'h':>12} | {'erreurs sup':>14} | {'ordre sup':>14} | {'erreurs L2':>14} | {'ordre L2':>14} \n")
             f.write("-" * 13 + ("+" + "-" * 16) * 4 + "" + "\n")
             f.write(f"{hList[0]:>12.3e} | {u_finalTime_sup_errors[0]:>14.3e} | {" - ":>14} | {u_finalTime_L2_errors[0]:>14.3e} | {" - ":>14} | \n")
@@ -882,8 +941,8 @@ if (True) :
             f.write("\n" * 3)
 
     else :
-        with open(f"{plotsLocation}Test_{testChoice}_Conv_DeC_{spacePolynOrder}.txt", 'a') as f:
-            f.write(f"=== Test de DeC (P{spacePolynOrder}, M{nbSubTimeSteps}, C{nbCorrections}) sur l'EDO {resultTitle} et q0 ~ [{round(u0, 3)}, {round(v0, 3)}, {round(p0, 3)}]  === \n\n")
+        with open(f"{plotsLocation}Test_{testChoice}_Conv_DeC_P{spacePolynOrder}M{nbSubTimeSteps}C{nbCorrections}.txt", 'a') as f:
+            f.write(f"=== Test de {basisChoice} {modificationChoice} (P{spacePolynOrder}, M{nbSubTimeSteps}, C{nbCorrections}) sur l'EDO/EDP {resultTitle} et q0 ~ [{round(u0, 3)}, {round(v0, 3)}, {round(p0, 3)}]  === \n\n")
             f.write(f"Autres paramètres : alpha = {alpha:6.3e}, CFL = {round(CFL, 3)} \n\n")
             f.write(f"--- Erreurs en norme sup : \n")
             f.write(f"{'h':>12} | {'u':>14} | {'ordre':>14} | {'v':>14} | {'ordre':>14} | {'p':>14} | {'ordre':>14}\n")
@@ -909,7 +968,7 @@ if (True) :
             f.write("\n" * 3)
 
     # Plots
-    with PdfPages(f"{plotsLocation}Test_{testChoice}_Conv_DeC_P{spacePolynOrder}M{nbSubTimeSteps}C{nbCorrections}") as pdf:
+    with PdfPages(f"{plotsLocation}Test_{testChoice}_Conv_{basisChoice}_{modificationChoice}_P{spacePolynOrder}M{nbSubTimeSteps}C{nbCorrections}") as pdf:
         # Evolutions des erreurs sup :
         plt.figure()
         plt.title(f"Erreurs sup {plotTitle}")

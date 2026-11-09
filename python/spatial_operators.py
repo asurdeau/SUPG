@@ -20,7 +20,7 @@ import grid_mod
 
 
 def get_UPWIND_divFlux(q, grid):
-    iMin, iMax, jMin, jMax = grid.valid_grid
+    iMin, iMax, jMin, jMax = grid.validGridIndices
     dx, dy = grid.steps 
     
     divF = np.zeros((np.shape(q)))
@@ -76,7 +76,7 @@ def get_UPWIND_divFlux(q, grid):
 
 
 def get_SUPG_developped_divFlux(q, grid):
-    iMin, iMax, jMin, jMax = grid.valid_grid
+    iMin, iMax, jMin, jMax = grid.validGridIndices
     dx, dy = grid.steps 
     
     divF = np.zeros((np.shape(q)))
@@ -1343,48 +1343,52 @@ def get_evaluation_of_arbitrar_order_SUPG_weighted_mass_operator(q, iMin, iMax, 
 
 
 
+####################################################################################################################
+
+#                                      INDIVIDUAL OPERATORS : THE BASIC ONES                                       #
+
+####################################################################################################################
+
+
+# [i+1 coeffs], [i coeffs], [i-1 coeffs]
 def getBasicLagElementsStandardOperators(spacePolynOrder):
-  # STANDARDS OPERATORS
-  Id = np.array([ np.zeros((spacePolynOrder, spacePolynOrder)), np.eye(spacePolynOrder), np.zeros((spacePolynOrder, spacePolynOrder)) ])
+    # STANDARDS OPERATORS
+    if spacePolynOrder == 1:
+      ### P1 BASIC LAGRANGE BASIS OPERATORS
+      mass = np.array([[[1]], [[4]], [[1]]], dtype=float) / 6.
+      left_der = np.array([[[-1]], [[0]], [[1]]], dtype=float) / 2.
+      right_der = - left_der
+      second_der = np.array([[[-1]], [[2]], [[-1]]], dtype=float)
 
-  if spacePolynOrder == 1:
-    ### FIRST ORDER FOR BASIC LAGRANGE BASIS
-    mass = np.array([[[1]], [[4]], [[1]]], dtype=float) / 6.
-    left_der = np.array([[[-1]], [[0]], [[1]]], dtype=float) / 2.
-    right_der = - left_der
-    second_der = np.array([[[-1]], [[2]], [[-1]]], dtype=float)
+    elif spacePolynOrder == 2:
+      ### P2 BASIC LAGRANGE BASIS OPERATORS
+      mass = np.array([[[- 1, 0], [2, 0]], [[8, 2], [2, 16]], [[-1, 2], [0, 0]]], dtype=float) / 30.
+      left_der = np.array([[[1, 0], [-4, 0]], [[0, -4], [4, 0]], [[-1, 4], [0, 0]]], dtype=float) / 6.
+      right_der = - left_der
+      second_der = np.array([[[1, 0], [-8, 0]], [[14, -8], [-8, 16]], [[1, -8], [0, 0]]], dtype=float) / 3.
 
-  elif spacePolynOrder == 2:
-    ### SECOND ORDER FOR BASIC LAGRANGE BASIS
-    mass = np.array([[[- 1, 0], [2, 0]], [[8, 2], [2, 16]], [[-1, 2], [0, 0]]], dtype=float) / 30.
-    left_der = np.array([[[1, 0], [-4, 0]], [[0, -4], [4, 0]], [[-1, 4], [0, 0]]], dtype=float) / 6.
-    right_der = - left_der
-    second_der = np.array([[[1, 0], [-8, 0]], [[14, -8], [-8, 16]], [[1, -8], [0, 0]]], dtype=float) / 3.
+    elif spacePolynOrder == 3:
+      ### P3 BASIC LAGRANGE BASIS OPERATORS
+      mass = np.array([[[19, 0, 0], [-36, 0, 0], [99, 0, 0]], [[256, 99, -36], [99, 648, -81], [-36, -81, 648]], [[19, -36, 99], [0, 0, 0], [0, 0, 0]]], dtype=float) / 1680.
+      left_der = np.array([[[-7, 0, 0], [24, 0, 0], [-57, 0, 0]], [[0, -57, 24], [57, 0, -81], [-24, 81, 0]], [[7, -24, 57], [0, 0, 0], [0, 0, 0]]], dtype=float) / 80.
+      right_der = - left_der
+      second_der = np.array([[[-13, 0, 0], [54, 0, 0], [-189, 0, 0]], [[296, -189, 54], [-189, 432, -297], [54, -297, 432]], [[-13, 54, -189], [0, 0, 0], [0, 0, 0]]], dtype=float) / 40.
 
-  elif spacePolynOrder == 3:
-    ### THIRD ORDER FOR BASIC LAGRANGE BASIS
-    mass = np.array([[[19, 0, 0], [-36, 0, 0], [99, 0, 0]], [[256, 99, -36], [99, 648, -81], [-36, -81, 648]], [[19, -36, 99], [0, 0, 0], [0, 0, 0]]], dtype=float) / 1680.
-    left_der = np.array([[[-7, 0, 0], [24, 0, 0], [-57, 0, 0]], [[0, -57, 24], [57, 0, -81], [-24, 81, 0]], [[7, -24, 57], [0, 0, 0], [0, 0, 0]]], dtype=float) / 80.
-    right_der = - left_der
-    second_der = np.array([[[-13, 0, 0], [54, 0, 0], [-189, 0, 0]], [[296, -189, 54], [-189, 432, -297], [54, -297, 432]], [[-13, 54, -189], [0, 0, 0], [0, 0, 0]]], dtype=float) / 40.
+    else :
+      raise Exception("getBasicLagElementsStandardOperators : operators not implemented yet")
+    
 
-  else :
-    raise Exception("getBasicLagElementsStandardOperators : operators not implemented yet")
-  
-
-  return mass, left_der, right_der, second_der, Id
+    return mass, left_der, right_der, second_der
 
 
 
 def getLGLoElementsStandardOperators(spacePolynOrder):
-  # STANDARDS OPERATORS
-    Id = np.array([ np.zeros((spacePolynOrder, spacePolynOrder)), np.eye(spacePolynOrder), np.zeros((spacePolynOrder, spacePolynOrder)) ])
-  
+    # STANDARDS OPERATORS
     if spacePolynOrder == 1 or spacePolynOrder == 2 :
       return getBasicLagElementsStandardOperators(spacePolynOrder)
     
     elif spacePolynOrder == 3:
-      ### THIRD ORDER FOR BASIC LAGRANGE BASIS
+      ### P3 LGLo LAGRANGE BASIS OPERATORS
       mass = np.array([[[1, 0, 0], [-sqrt(5.), 0, 0], [sqrt(5.), 0, 0]] \
                        , [[12, sqrt(5.), -sqrt(5.)], [sqrt(5.), 30., 5.] \
                        , [-sqrt(5), 5., 30.]], [[1, -sqrt(5.), sqrt(5.)], [0, 0, 0], [0, 0, 0]]] \
@@ -1404,21 +1408,133 @@ def getLGLoElementsStandardOperators(spacePolynOrder):
     else :
       raise Exception("getLGLoElementsStandardOperators : operators not implemented yet")
     
+
+    return mass, left_der, right_der, second_der
+
+
+####################################################################################################################
+
+#                                     INDIVIDUAL OPERATORS : THE MODIFIED ONES                                     #
+
+####################################################################################################################
+
+
+# [i+1 coeffs], [i coeffs], [i-1 coeffs]
+def getBasicLagElementsHighestAccuracyOperators(spacePolynOrder):
+    # STANDARDS OPERATORS
   
-    return mass, left_der, right_der, second_der, Id
+    if spacePolynOrder == 1:
+      ### P1 BASIC LAGRANGE OPERATORS
+      mass = np.array([[[1]], [[4]], [[1]]], dtype=float) / 6.
+      left_der = np.array([[[-1]], [[0]], [[1]]], dtype=float) / 2.
+      right_der = - left_der
+      second_der = np.array([[[-1]], [[2]], [[-1]]], dtype=float)
+
+    elif spacePolynOrder == 2:
+      ### P2 BASIC LAGRANGE BASIS HIGHEST ACCURACY OPERATORS
+      mass = np.array([[[- 1, 0], [2, 0]], [[8, 2], [2, 16]], [[-1, 2], [0, 0]]], dtype=float) / 30.
+      left_der = np.array([[[1, 2], [-58, 2]], [[-20, -32], [88, -20]], [[-13, 62], [2, -14]]], dtype=float) / 90.
+      right_der = - left_der
+      second_der = np.array([[[17, 0], [-112, -2]], [[222, -128], [-112, 228]], [[17, -128], [0, -2]]], dtype=float) / 45.
+
+    else :
+      raise Exception("getBasicLagElementsStandardOperators : operators not implemented yet")
+    
+
+    return mass, left_der, right_der, second_der
+
+
+####################################################################################################################
+
+#                              SYSTEM MASS AND SYSTEM EVOLUTION OPERATORS ASSEMBLING                               #
+
+####################################################################################################################
+
+# LES OPERATEURS SONT DECOMPOSES EN 3 : UN QUI AGIT EN +1, UN AUTRE EN 0 ET LE DERNIER EN -1
+# NO MULTIPLICATION BY THE INVERSE OF THE LUMPED MASS
+def get_arbitrar_order_SUPG_evolution_operator_coeffs(basisChoice, modificationChoice, spacePolynOrder, dx, dy, alpha, h):
+    evolCoeffs = np.zeros((20, 3, spacePolynOrder, spacePolynOrder), dtype=np.float64)
+
+    if basisChoice == "basic" :
+      if modificationChoice == "" :
+        mass, left_der, right_der, second_der = getBasicLagElementsStandardOperators(spacePolynOrder)
+      elif modificationChoice == "highest_accuracy" :
+        mass, left_der, right_der, second_der = getBasicLagElementsHighestAccuracyOperators(spacePolynOrder)
+      else :
+        raise Exception("evolution_operators_ceoffs : The modifcation choice is unreckognized")
+      
+    elif basisChoice == "LGLo" :
+      mass, left_der, right_der, second_der = getLGLoElementsStandardOperators(spacePolynOrder)
+
+    else :
+      raise Exception("evolution_operators_ceoffs : The basis choice is unreckognized")
+
+
+    # U EQUATION
+    ### uEq_uTerm : dx / 2 * derivée seconde en x et masse en y
+    evolCoeffs[0] = alpha * h * second_der / dx**2
+    evolCoeffs[1] = mass
+
+    ### uEq_vTerm : dx / 2 * derivée simple en x et derivée simple y
+    evolCoeffs[2] = alpha * h * left_der / dx
+    evolCoeffs[3] = right_der / dy
+
+    ### uEq_pTerm : derivée simple en x et masse en y
+    evolCoeffs[4] = right_der / dx
+    evolCoeffs[5] = mass
+
+    # V EQUATION
+    ### vEq_uTerm : derivée simple en x et dy / 2 * derivée simple y
+    evolCoeffs[6] = right_der / dx
+    evolCoeffs[7] = alpha * h * left_der / dy
+
+    ### vEq_vTerm : masse en x et dy / 2 * derivée seconde en y
+    evolCoeffs[8] = mass
+    evolCoeffs[9] = alpha * h * second_der / dy**2
+
+    ### vEq_pTerm : masse en x et derivée simple en y
+    evolCoeffs[10] = mass
+    evolCoeffs[11] = right_der / dy
+
+    # P EQUATION
+    ### pEq_uTerm : derivée simple en x et masse en y
+    evolCoeffs[12] = right_der / dx
+    evolCoeffs[13] = mass
+
+    ### pEq_vTerm : masse en x et derivée simple en y
+    evolCoeffs[14] = mass
+    evolCoeffs[15] = right_der / dy
+
+    ### pEq_pTerms
+    evolCoeffs[16] = alpha * h * second_der / dx**2
+    evolCoeffs[17] = mass
+
+    evolCoeffs[18] = mass
+    evolCoeffs[19] = alpha * h * second_der / dy**2
+
+    return evolCoeffs
+
 
 
 
 # LES OPERATEURS SONT DECOMPOSES EN 3 : UN QUI AGIT EN +1, UN AUTRE EN 0 ET LE DERNIER EN -1
-def get_arbitrar_order_SUPG_weighted_evolution_operator_coeffs(basisChoice, spacePolynOrder, dx, dy, alpha, h):
+def get_arbitrar_order_SUPG_weighted_evolution_operator_coeffs(basisChoice, modificationChoice, spacePolynOrder, dx, dy, alpha, h):
     evolCoeffs = np.zeros((20, 3, spacePolynOrder, spacePolynOrder), dtype=np.float64)
 
     if basisChoice == "basic" :
-      mass, left_der, right_der, second_der, Id = getBasicLagElementsStandardOperators(spacePolynOrder)
+      if modificationChoice == "" :
+        mass, left_der, right_der, second_der = getBasicLagElementsStandardOperators(spacePolynOrder)
+      elif modificationChoice == "highest_accuracy" :
+        mass, left_der, right_der, second_der = getBasicLagElementsHighestAccuracyOperators(spacePolynOrder)
+      else :
+        raise Exception("evolution_operators_ceoffs : The modifcation choice is unreckognized")
+      
     elif basisChoice == "LGLo" :
-      mass, left_der, right_der, second_der, Id = getLGLoElementsStandardOperators(spacePolynOrder)
+      mass, left_der, right_der, second_der = getLGLoElementsStandardOperators(spacePolynOrder)
+
     else :
       raise Exception("evolution_operators_ceoffs : The basis choice is unreckognized")
+
 
     # U EQUATION
     ### uEq_uTerm : dx / 2 * derivée seconde en x et masse en y
@@ -1474,15 +1590,23 @@ def get_arbitrar_order_SUPG_weighted_evolution_operator_coeffs(basisChoice, spac
 
 
 # LES OPERATEURS SONT DECOMPOSES EN 3 : UN QUI AGIT EN +1, UN AUTRE EN 0 ET LE DERNIER EN -1
-def get_arbitrar_order_SUPG_weighted_mass_operator_coeffs(basisChoice, spacePolynOrder, dx, dy, alpha, h):
+def get_arbitrar_order_SUPG_weighted_mass_operator_coeffs(basisChoice, modificationChoice, spacePolynOrder, dx, dy, alpha, h):
     massCoeffs = np.zeros((18, 3, spacePolynOrder, spacePolynOrder))
 
     if basisChoice == "basic" :
-      mass, left_der = getBasicLagElementsStandardOperators(spacePolynOrder)[0:2]
+      if modificationChoice == "" :
+        mass, left_der = getBasicLagElementsStandardOperators(spacePolynOrder)[0:2]
+      elif modificationChoice == "highest_accuracy" :
+        mass, left_der = getBasicLagElementsHighestAccuracyOperators(spacePolynOrder)[0:2]
+      else :
+        raise Exception("mass_operators_ceoffs : The modifcation choice is unreckognized")
+      
     elif basisChoice == "LGLo" :
       mass, left_der = getLGLoElementsStandardOperators(spacePolynOrder)[0:2]
+
     else :
       raise Exception("mass_operators_ceoffs : The basis choice is unreckognized")
+
 
     # U EQUATION
     ### uEq_uTerm : masses

@@ -155,7 +155,7 @@ def test6(X, Y): # x^a . (1-x)^b . y^c . (1-y)^d
 def first_component_operations_errors(q, iMin, iMax, jMin, jMax, dx, dy, divFlux_method, f_x, f_xx, f_xy, \
                                       grid, schemeChoice, operatorsCoeffs):
     
-    iMin, iMax, jMin, jMax = grid.valid_grid
+    iMin, iMax, jMin, jMax = grid.validGridIndices
     dx = grid.steps[0]
 
     divFlux = divFlux_method(q, grid, iMin, iMax, jMin, jMax, dx, dy, schemeChoice, operatorsCoeffs)
@@ -175,7 +175,7 @@ def first_component_operations_errors(q, iMin, iMax, jMin, jMax, dx, dy, divFlux
 
 def second_component_operations_errors(q, iMin, iMax, jMin, jMax, dx, dy, divFlux_method, f_y, f_yy, f_xy, \
                                        grid, schemeChoice, operatorsCoeffs):
-    iMin, iMax, jMin, jMax = grid.valid_grid
+    iMin, iMax, jMin, jMax = grid.validGridIndices
     dy = grid.steps[1]
 
     divFlux = divFlux_method(q, grid, iMin, iMax, jMin, jMax, dx, dy, schemeChoice, operatorsCoeffs)
@@ -192,7 +192,7 @@ def second_component_operations_errors(q, iMin, iMax, jMin, jMax, dx, dy, divFlu
 
 def third_component_operations_errors(q, iMin, iMax, jMin, jMax, dx, dy, divFlux_method, f_x, f_y, f_xx, f_yy, \
                                       grid, schemeChoice, operatorsCoeffs):
-    iMin, iMax, jMin, jMax = grid.valid_grid
+    iMin, iMax, jMin, jMax = grid.validGridIndices
     dx, dy = grid.steps
 
     divFlux = divFlux_method(q, grid, iMin, iMax, jMin, jMax, dx, dy, schemeChoice, operatorsCoeffs)
@@ -233,10 +233,9 @@ if (False) :
     params = {"grid_parameters" : grid_params, "order" : 0.}
     
     gridOp = grid_mod.gridOperator(params)
-    iMin, iMax, jMin, jMax = gridOp.valid_grid
+    iMin, iMax, jMin, jMax = gridOp.validGridIndices
     dx, dy = gridOp.steps
-    X = gridOp.xValidGrid
-    Y = gridOp.yValidGrid
+    X, Y = gridOp.validGrid
 
     if schemeChoice == 3:
         operatorsCoeffs = spatial_operators.extract_operators(operators)
@@ -520,7 +519,7 @@ if (True) :
         grid_params["mesh_parameters"]["Nx"] = n
         grid_params["mesh_parameters"]["Ny"] = n
         gridOp = grid_mod.gridOperator(params)
-        iMin, iMax, jMin, jMax = gridOp.valid_grid
+        iMin, iMax, jMin, jMax = gridOp.validGridIndices
         dx, dy = gridOp.steps
         operators = yaml.load(open("operators.yaml"),Loader=yaml.SafeLoader)
         operatorsCoeffs = []

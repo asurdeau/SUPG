@@ -18,7 +18,8 @@ import spatial_operators
 # from plots import makePlots, openGifWriters, closeGifWriters
 import solutions
 from spatial_operators import get_evaluation_of_arbitrar_order_SUPG_weighted_evolution_operator, get_arbitrar_order_SUPG_weighted_evolution_operator_coeffs, \
-                                get_evaluation_of_arbitrar_order_SUPG_weighted_mass_operator, get_arbitrar_order_SUPG_weighted_mass_operator_coeffs
+                                get_evaluation_of_arbitrar_order_SUPG_weighted_mass_operator, get_arbitrar_order_SUPG_weighted_mass_operator_coeffs, \
+                                get_arbitrar_order_SUPG_evolution_operator_coeffs
 from plots import getVisualisationData
 
 
@@ -29,9 +30,8 @@ from plots import getVisualisationData
 
 ####################################################################################################################
 
-def test1(X, Y): # f(x, y) = cos(2 kx pi x) + sin(2 ky pi y)
-    kx = 2.
-    ky = 5.
+def test1(X, Y, params): # f(x, y) = cos(2 kx pi x) + sin(2 ky pi y)
+    kx, ky = params
 
     # f
     func = np.cos(2. * kx * np.pi * X) + np.sin(2. * ky * np.pi * Y)
@@ -49,9 +49,8 @@ def test1(X, Y): # f(x, y) = cos(2 kx pi x) + sin(2 ky pi y)
     return func, func_x, func_y, func_xx, func_yy, func_xy
 
 
-def test2(X, Y): # f(x, y) = a x^2 + b y^2 + c x + d y + e
-    a, b, c, d, e = np.pi, np.exp(1), 13., np.sqrt(2.), 3.
-    # a, b, c, d, e = 0., 0., 0., 0., 3.
+def test2(X, Y, params): # f(x, y) = a x^2 + b y^2 + c x + d y + e
+    a, b, c, d, e = params
 
     # f
     func = a * X**2 + b * Y**2 + c * X + d * Y + e
@@ -69,9 +68,8 @@ def test2(X, Y): # f(x, y) = a x^2 + b y^2 + c x + d y + e
     return func, func_x, func_y, func_xx, func_yy, func_xy
 
 
-def test3(X, Y): # f(x, y) = cos(2 kx pi x) * cos(2 ky pi y)
-    kx = 2.
-    ky = 5.
+def test3(X, Y, params): # f(x, y) = cos(2 kx pi x) * cos(2 ky pi y)
+    kx, ky = params
 
     # f
     func = np.cos(2. * kx * np.pi * X) * np.cos(2. * ky * np.pi * Y)
@@ -89,8 +87,8 @@ def test3(X, Y): # f(x, y) = cos(2 kx pi x) * cos(2 ky pi y)
     return func, func_x, func_y, func_xx, func_yy, func_xy
 
 
-def test4(X, Y): # f(x, y) = a x^2 + b y^2 + c x*y + d x + e y + f
-    a, b, c, d, e, f = np.pi, -np.exp(1), -13., np.sqrt(2.), 3., -7./3.
+def test4(X, Y, params): # f(x, y) = a x^2 + b y^2 + c x*y + d x + e y + f
+    a, b, c, d, e, f = params
 
     # f
     func = a * X**2 + b * Y**2 + c * X * Y + d * X + e * Y + f
@@ -108,9 +106,8 @@ def test4(X, Y): # f(x, y) = a x^2 + b y^2 + c x*y + d x + e y + f
     return func, func_x, func_y, func_xx, func_yy, func_xy
 
 
-def test5(X, Y): # f(x, y) = sin(2 kx pi x) * sin(2 ky pi y)
-    kx = 5.
-    ky = 5.
+def test5(X, Y, params): # f(x, y) = sin(2 kx pi x) * sin(2 ky pi y)
+    kx, ky = params
 
     # f
     func = np.sin(2. * kx * np.pi * X) * np.sin(2. * ky * np.pi * Y)
@@ -128,8 +125,8 @@ def test5(X, Y): # f(x, y) = sin(2 kx pi x) * sin(2 ky pi y)
     return func, func_x, func_y, func_xx, func_yy, func_xy
 
 
-def test6(X, Y): # x^a . (1-x)^b . y^c . (1-y)^d
-    a, b, c, d = 1, 1, 1, 1
+def test6(X, Y, params): # x^a . (1-x)^b . y^c . (1-y)^d
+    a, b, c, d = params
 
     # f
     func = X**a*(1.-X)**b * Y**c*(1-Y)**d
@@ -148,7 +145,7 @@ def test6(X, Y): # x^a . (1-x)^b . y^c . (1-y)^d
 
 
 
-def getTestFonctionLagrangeArbitrarOrderInterpolation(xL, xR, yL, yR, Nx, Ny, nGhost, spacePolynOrder, testFonction):
+def getTestFonctionLagrangeArbitrarOrderInterpolation(xL, xR, yL, yR, Nx, Ny, nGhost, spacePolynOrder, testFonction, params):
     dx, dy = (xR - xL) / (1. * Nx), (yR - yL) / (1. * Ny)
 
     fTab = np.zeros((6, Nx + 2 * nGhost, Ny + 2 * nGhost, spacePolynOrder, spacePolynOrder))
@@ -160,7 +157,7 @@ def getTestFonctionLagrangeArbitrarOrderInterpolation(xL, xR, yL, yR, Nx, Ny, nG
                 for l in range(spacePolynOrder):
                     x_ik = xL + (i - iMin + (1. * k) / spacePolynOrder) * dx
                     y_jl = yL + (j - jMin + (1. * l) / spacePolynOrder) * dy
-                    fTab[:, i, j, k, l] = testFonction(x_ik, y_jl)
+                    fTab[:, i, j, k, l] = testFonction(x_ik, y_jl, params)
 
     return fTab
 
@@ -176,7 +173,7 @@ def getTestFonctionLagrangeArbitrarOrderInterpolation(xL, xR, yL, yR, Nx, Ny, nG
 def evol_operator_first_component_operations_errors(q, iMin, iMax, jMin, jMax, dx, dy, f_x, f_xx, f_xy, \
                                       grid, spacePolynOrder, evolCoeffs):
     
-    iMin, iMax, jMin, jMax = grid.valid_grid
+    iMin, iMax, jMin, jMax = grid.validGridIndices
     dx = grid.steps[0]
 
     divFlux = get_evaluation_of_arbitrar_order_SUPG_weighted_evolution_operator(q, iMin, iMax, jMin, jMax, spacePolynOrder, evolCoeffs)
@@ -196,7 +193,7 @@ def evol_operator_first_component_operations_errors(q, iMin, iMax, jMin, jMax, d
 
 def evol_operator_second_component_operations_errors(q, iMin, iMax, jMin, jMax, dx, dy, f_y, f_yy, f_xy, \
                                        grid, spacePolynOrder, evolCoeffs):
-    iMin, iMax, jMin, jMax = grid.valid_grid
+    iMin, iMax, jMin, jMax = grid.validGridIndices
     dy = grid.steps[1]
 
     divFlux = get_evaluation_of_arbitrar_order_SUPG_weighted_evolution_operator(q, iMin, iMax, jMin, jMax, spacePolynOrder, evolCoeffs)
@@ -213,7 +210,7 @@ def evol_operator_second_component_operations_errors(q, iMin, iMax, jMin, jMax, 
 
 def evol_operator_third_component_operations_errors(q, iMin, iMax, jMin, jMax, dx, dy, f_x, f_y, f_xx, f_yy, \
                                       grid, spacePolynOrder, evolCoeffs):
-    iMin, iMax, jMin, jMax = grid.valid_grid
+    iMin, iMax, jMin, jMax = grid.validGridIndices
     dx, dy = grid.steps
 
     divFlux = get_evaluation_of_arbitrar_order_SUPG_weighted_evolution_operator(q, iMin, iMax, jMin, jMax, spacePolynOrder, evolCoeffs)
@@ -236,7 +233,7 @@ def evol_operator_third_component_operations_errors(q, iMin, iMax, jMin, jMax, d
 
 def mass_operator_first_component_operations_errors(q, iMin, iMax, jMin, jMax, dx, dy, f, f_x, grid, spacePolynOrder, massCoeffs):
     
-    iMin, iMax, jMin, jMax = grid.valid_grid
+    iMin, iMax, jMin, jMax = grid.validGridIndices
     dx = grid.steps[0]
 
     mass = get_evaluation_of_arbitrar_order_SUPG_weighted_mass_operator(q, iMin, iMax, jMin, jMax, spacePolynOrder, massCoeffs)
@@ -255,7 +252,7 @@ def mass_operator_first_component_operations_errors(q, iMin, iMax, jMin, jMax, d
 
 
 def mass_operator_second_component_operations_errors(q, iMin, iMax, jMin, jMax, dx, dy, f, f_y, grid, spacePolynOrder, massCoeffs):
-    iMin, iMax, jMin, jMax = grid.valid_grid
+    iMin, iMax, jMin, jMax = grid.validGridIndices
     dy = grid.steps[1]
 
     mass = get_evaluation_of_arbitrar_order_SUPG_weighted_mass_operator(q, iMin, iMax, jMin, jMax, spacePolynOrder, massCoeffs)
@@ -271,7 +268,7 @@ def mass_operator_second_component_operations_errors(q, iMin, iMax, jMin, jMax, 
 
 
 def mass_operator_third_component_operations_errors(q, iMin, iMax, jMin, jMax, dx, dy, f, f_x, f_y, grid, spacePolynOrder, massCoeffs):
-    iMin, iMax, jMin, jMax = grid.valid_grid
+    iMin, iMax, jMin, jMax = grid.validGridIndices
     dx, dy = grid.steps
 
     mass = get_evaluation_of_arbitrar_order_SUPG_weighted_mass_operator(q, iMin, iMax, jMin, jMax, spacePolynOrder, massCoeffs)
@@ -311,7 +308,8 @@ if (False) :
 
     coeffs = spatial_operators.extract_operators_improved(dx, dy)
     basisChoice = "basic"
-    evolCoeffs = spatial_operators.get_arbitrar_order_SUPG_weighted_evolution_operator_coeffs(basisChoice, spacePolynOrder, dx, dy, alpha, h)
+    modificationChoice = ""
+    evolCoeffs = spatial_operators.get_arbitrar_order_SUPG_weighted_evolution_operator_coeffs(basisChoice, modificationChoice, spacePolynOrder, dx, dy, alpha, h)
 
     n1, n2 = -3, 3
     rng = np.random.default_rng()
@@ -373,11 +371,12 @@ if (False) :
     params = {"grid_parameters" : grid_params, "order" : {"space_polyn_order" : spacePolynOrder}, "number_visualisation_points" : NVis}
 
     gridOp = grid_mod.gridOperator(params)
-    iMin, iMax, jMin, jMax = gridOp.valid_grid
+    iMin, iMax, jMin, jMax = gridOp.validGridIndices
     dx, dy = gridOp.steps
     h = gridOp.characteristic_size
     basisChoice = "basic"
-    evolCoeffs = get_arbitrar_order_SUPG_weighted_evolution_operator_coeffs(basisChoice, spacePolynOrder, dx, dy, alpha, h)
+    modificationChoice = ""
+    evolCoeffs = get_arbitrar_order_SUPG_weighted_evolution_operator_coeffs(basisChoice, modificationChoice, spacePolynOrder, dx, dy, alpha, h)
 
     Id = np.array([ np.zeros((spacePolynOrder, spacePolynOrder)), np.eye(spacePolynOrder), np.zeros((spacePolynOrder, spacePolynOrder)) ])
 
@@ -630,11 +629,12 @@ if (False) :
         grid_params["mesh_parameters"]["Nx"] = n
         grid_params["mesh_parameters"]["Ny"] = n
         gridOp = grid_mod.gridOperator(params)
-        iMin, iMax, jMin, jMax = gridOp.valid_grid
+        iMin, iMax, jMin, jMax = gridOp.validGridIndices
         dx, dy = gridOp.steps
         h = gridOp.characteristic_size
         basisChoice = "basic"
-        evolCoeffs = get_arbitrar_order_SUPG_weighted_evolution_operator_coeffs(basisChoice, spacePolynOrder, dx, dy, alpha, h)
+        modificationChoice = "highest_accuracy"
+        evolCoeffs = get_arbitrar_order_SUPG_weighted_evolution_operator_coeffs(basisChoice, modificationChoice, spacePolynOrder, dx, dy, alpha, h)
 
         # print("evolCoeffs : \n ", evolCoeffs)
 
@@ -673,10 +673,11 @@ if (False) :
     cross_term_u = "$\\partial_y \\partial_x u$"
     cross_term_v = "$\\partial_x \\partial_y v$"
     
-    with PdfPages(f"Plots/divF/test_operators_order_{spacePolynOrder}") as pdf:
+    with PdfPages(f"Plots/divF/test_P{spacePolynOrder}_{basisChoice}_{modificationChoice}_operators_") as pdf:
         # Résultats des opérations sur la première composante
         plt.figure()
-        plt.title(f"Erreurs en norme $L^{{\\infty}}$ sur les différentes composantes de $\\widetilde{{\\nabla}} f$ \n pour l'ordre {spacePolynOrder} avec v = p = 0")
+        plt.title(f"Erreurs en norme $L^{{\\infty}}$ sur les différentes composantes de $\\widetilde{{\\nabla}} f$ \n \
+                  P{spacePolynOrder} {basisChoice} {modificationChoice} avec v = p = 0")
         plt.plot(hList, Error_q1_1, label="$\\partial^2_x u$", marker="o")
         plt.plot(hList, Error_q1_2, label=cross_term_u, marker="^")
         plt.plot(hList, Error_q1_3, label="$\\partial_x u$", marker="s")
@@ -691,7 +692,8 @@ if (False) :
 
         # Résultats des opérations sur la seonde composante
         plt.figure()
-        plt.title(f"Erreurs en norme $L^{{\\infty}}$ sur les différentes composantes de $\\widetilde{{\\nabla}} f$ \n pour l'ordre {spacePolynOrder} avec u = p = 0")
+        plt.title(f"Erreurs en norme $L^{{\\infty}}$ sur les différentes composantes de $\\widetilde{{\\nabla}} f$ \n \
+                  P{spacePolynOrder} {basisChoice} {modificationChoice} avec u = p = 0")
         plt.plot(hList, Error_q2_1, label=cross_term_v, marker="o")
         plt.plot(hList, Error_q2_2, label="$\\partial^2_y v$", marker="^")
         plt.plot(hList, Error_q2_3, label="$\\partial_y v$", marker="s")
@@ -706,7 +708,8 @@ if (False) :
 
         # Résultats des opérations sur la troisième composante
         plt.figure()
-        plt.title(f"Erreurs en norme $L^{{\\infty}}$ sur les différentes composantes de $\\widetilde{{\\nabla}} f$ \n pour l'ordre {spacePolynOrder} avec u = v = 0")
+        plt.title(f"Erreurs en norme $L^{{\\infty}}$ sur les différentes composantes de $\\widetilde{{\\nabla}} f$ \n \
+                  P{spacePolynOrder} {basisChoice} {modificationChoice} avec u = v = 0")
         plt.plot(hList, Error_q3_1, label="$\\partial_x p$", marker="o")
         plt.plot(hList, Error_q3_2, label="$\\partial_y p$", marker="^")
         plt.plot(hList, Error_q3_3, label="$\\Delta p$", marker="s")
@@ -750,11 +753,12 @@ if (False) :
     params = {"grid_parameters" : grid_params, "order" : {"space_polyn_order" : spacePolynOrder}, "number_visualisation_points" : NVis}
 
     gridOp = grid_mod.gridOperator(params)
-    iMin, iMax, jMin, jMax = gridOp.valid_grid
+    iMin, iMax, jMin, jMax = gridOp.validGridIndices
     dx, dy = gridOp.steps
     h = gridOp.characteristic_size
     basisChoice = "basic"
-    massCoeffs = get_arbitrar_order_SUPG_weighted_mass_operator_coeffs(basisChoice, spacePolynOrder, dx, dy, alpha, h)
+    modificationChoice = ""
+    massCoeffs = get_arbitrar_order_SUPG_weighted_mass_operator_coeffs(basisChoice, modificationChoice, spacePolynOrder, dx, dy, alpha, h)
 
     Id = np.array([ np.zeros((spacePolynOrder, spacePolynOrder)), np.eye(spacePolynOrder), np.zeros((spacePolynOrder, spacePolynOrder)) ])
 
@@ -1005,10 +1009,11 @@ if (False) :
         grid_params["mesh_parameters"]["Nx"] = n
         grid_params["mesh_parameters"]["Ny"] = n
         gridOp = grid_mod.gridOperator(params)
-        iMin, iMax, jMin, jMax = gridOp.valid_grid
+        iMin, iMax, jMin, jMax = gridOp.validGridIndices
         dx, dy = gridOp.steps
         basisChoice = "basic"
-        massCoeffs = get_arbitrar_order_SUPG_weighted_mass_operator_coeffs(basisChoice, spacePolynOrder, dx, dy, alpha, h)
+        modificationChoice = ""
+        massCoeffs = get_arbitrar_order_SUPG_weighted_mass_operator_coeffs(basisChoice, modificationChoice, spacePolynOrder, dx, dy, alpha, h)
 
         # print("massCoeffs : \n ", massCoeffs)
 
@@ -1088,4 +1093,535 @@ if (False) :
         pdf.savefig()
 
 
+
+
+
+####################################################################################################################
+
+#                                        MASS INVERSION : "TRUE ORDERS"                                            #
+
+####################################################################################################################
+
+
+# INDEX PATH (flattening 4D array to 1D) : "(i, j, k, l)" to "alpha = i * nDOF + k + (j * nDOF + l) * nXTotalCells * nDOF"
+# THEN : crossing the alpha indices by ascending order 
+# alpha = i * nDOF + k + (j * nDOF + l) * nXTotalCells * nDOF 
+#       = k + i * nDOF + l * nXTotalCells * nDOF + j * nXTotalCells * nDOF ** 2
+# so k in the inner-most index, then i, then...
+def getPeriodicGhostRowsCOOEntries(position, nXValidCells, nYValidCells, nDOF, nGhost):
+
+    nXValidDOFs = nXValidCells * nDOF
+    nXTotalCells = nXValidCells + 2 * nGhost
+    nXTotalDOFs = nXTotalCells*nDOF
+    nGhostDOFs = nGhost*nDOF
+    xPeriodicShift = nXValidCells * nDOF
+    
+    if position == "lower" :
+        first_row_index = 0
+        yPeriodicShift = nYValidCells * nXTotalCells * nDOF**2
+    elif position == "upper" :
+        first_row_index = (nGhost + nYValidCells) * nDOF * nXTotalDOFs
+        yPeriodicShift = -nYValidCells * nXTotalCells * nDOF**2
+    else :
+        raise ValueError(f"position must be 'lower' or 'upper', got {position!r}")
+
+    bloc_size = nXTotalDOFs * nGhostDOFs
+    diag = first_row_index + np.arange(bloc_size)                       # colonne de l'entrée +1
+
+    # décalage vers l'image périodique, pour une ligne de DOFs (gauche | valide | droite)
+    one_row_shifts = np.concatenate((np.full(nGhostDOFs, xPeriodicShift), \
+                                     np.zeros(nXValidDOFs, dtype=int), \
+                                     np.full(nGhostDOFs, -xPeriodicShift))) + yPeriodicShift
+
+    periodic_image = diag + np.tile(one_row_shifts, nGhostDOFs)         # colonne de l'entrée -1
+
+    rows = np.repeat(diag, 2)
+    cols = np.stack((diag, periodic_image), axis=-1).ravel()
+    values = np.tile([1, -1], bloc_size)
+    
+    return rows, cols, values
+
+
+
+def getBasicMassOtimesIdentityC00(nXValidCells, nYValidCells, nDOF, nGhost):
+
+    # Mass : [0, 0] has 3 coeffs, [i, 0] and [0, j] for i,j>0 have 2, the other have 1
+    nb_mass_coeffs = (nDOF + 2)*nDOF       # = (3 + 2 * (2 * (nDOF - 1)) + 1 * (nDOF - 1)**2)
+    nXValidDOFs = nXValidCells * nDOF
+    nYValidDOFs = nYValidCells * nDOF
+    nXTotalCells = nXValidCells + 2 * nGhost
+    nXTotalDOFs = nXTotalCells*nDOF
+    nGhostDOFs = nGhost*nDOF
+    xPeriodicShift = nXValidCells * nDOF
+    mesh_interm_row_nb_of_coeffs = 4 * nGhost * nDOF + nXValidCells * nb_mass_coeffs
+
+    if nDOF == 1 :
+        mass_entries = np.array([1, 4, 1], dtype=float) / 6.
+        mass_entries_row_index = np.zeros(3)
+        mass_rows_neighbors = np.array([-1, 0, 1])
+        
+    if nDOF == 2 :
+        mass_entries = np.array([-1, 2, 8, 2, -1, 2, 16, 2], dtype=float) / 30.
+        mass_entries_row_index = np.concatenate((np.full(5, 0), np.full(3, 1)))
+        mass_rows_neighbors = np.array([-2, -1, 0, 1, 2, -1, 0, 1])
+
+
+
+    # FIRST ROWS OF GHOST DOFs ; j < nGhost
+    First_bloc_rows, First_bloc_cols, First_bloc_values = getPeriodicGhostRowsCOOEntries("lower", nXValidCells, nYValidCells, nDOF, nGhost)
+
+
+
+    # INTERMEDIATE ROWS OF DOFs : nGhost <= j <= nGhost + nx - 1
+    first_row_index = nGhostDOFs * nXTotalDOFs
+
+    # FIRST INTERMEDIATE ROW OF THE MESH :
+    # Rows
+    interm_row_valid_DOFs_rows = np.tile(mass_entries_row_index, nXValidCells) \
+                             + np.repeat(np.arange(nXValidCells)*nDOF, nb_mass_coeffs) \
+                             + nGhostDOFs
+    interm_row_DOFs_rows = np.concatenate((np.repeat(np.arange(nGhostDOFs), 2), \
+                                           interm_row_valid_DOFs_rows, \
+                                           np.repeat(np.arange(nGhostDOFs), 2) + (nXValidCells+nGhost)*nDOF)) \
+                           + first_row_index
+
+    # Cols
+    interm_row_valid_DOFs_relativ_cols = np.tile(mass_rows_neighbors, nXValidCells)
+    interm_row_relativ_cols = np.concatenate((np.tile([0, xPeriodicShift], nGhostDOFs), \
+                                               interm_row_valid_DOFs_relativ_cols, \
+                                               np.tile([0, -xPeriodicShift], nGhostDOFs)))
+    interm_row_DOFs_cols = interm_row_relativ_cols + interm_row_DOFs_rows
+    
+    # Values
+    interm_row_DOFs_values = np.concatenate((np.tile([1, -1], nGhostDOFs), \
+                                                np.tile(mass_entries, nXValidCells), \
+                                                np.tile([1, -1], nGhostDOFs)))
+
+    # ALL INTERMEDIATE ROWS OF THE MESH
+    interm_rows_DOFs_rows = np.tile(interm_row_DOFs_rows, nYValidDOFs) \
+                                + np.repeat(np.arange(nYValidDOFs)*nXTotalDOFs, mesh_interm_row_nb_of_coeffs)
+    interm_rows_DOFs_cols = np.tile(interm_row_DOFs_cols, nYValidDOFs) \
+                            + np.repeat(np.arange(nYValidDOFs)*nXTotalDOFs, mesh_interm_row_nb_of_coeffs) 
+    interm_rows_DOFs_values = np.tile(interm_row_DOFs_values, nYValidDOFs)
+
+
+
+    # LAST ROWS OF GHOST DOFs ; nGhost + nx < j
+    Last_bloc_rows, Last_bloc_cols, Last_bloc_values = getPeriodicGhostRowsCOOEntries("upper", nXValidCells, nYValidCells, nDOF, nGhost)
+
+
+
+    # FINAL ASSEMBLING
+    IM = np.concatenate((First_bloc_rows, interm_rows_DOFs_rows, Last_bloc_rows))
+    JM = np.concatenate((First_bloc_cols, interm_rows_DOFs_cols, Last_bloc_cols))
+    M = np.concatenate((First_bloc_values, interm_rows_DOFs_values, Last_bloc_values))
+
+    return IM, JM, M
+
+
+
+
+
+
+
+def getP2MassOtimesIdentityC00(nXValidCells, nYValidCells, nDOF, nGhost):
+
+    # Mass : [0, 0] has 3 entries, [i, 0] and [0, j] for i,j>0 have 2, the other have 1
+    average_nb_fourier_symbol_entries = nDOF + 2       # = (3 + 2 * (2 * (nDOF - 1)) + 1 * (nDOF - 1)**2) / nDOF
+    nb_ghost_cells_entries = 2 * (2 * nGhost * (2 * nGhost + nXValidCells + nYValidCells) * nDOF ** 2)
+    nb_valid_cells_entries = average_nb_fourier_symbol_entries * nXValidCells * nYValidCells * nDOF ** 2
+    nb_entries = nb_ghost_cells_entries + nb_valid_cells_entries
+
+    nXTotalCells = nXValidCells + 2 * nGhost
+    nYTotalCells = nYValidCells + 2 * nGhost
+    alpha = 0
+    sparseIndex = 0
+
+    IM = np.zeros(nb_entries)
+    JM = np.zeros(nb_entries)
+    M = np.zeros(nb_entries)
+
+    # 1 : lower ghost cells rows : periodic BC only
+    for j in range(nGhost):
+      for l in range(nDOF):
+        # left ghost cell column : periodic BC (i -> i + nx AND j -> j + ny)
+        for i in range(nGhost):
+          for k in range(nDOF):
+            IM[sparseIndex:sparseIndex+2] = alpha
+            JM[sparseIndex] = alpha
+            M[sparseIndex] = 1
+            JM[sparseIndex+1] = (i + nXValidCells) * nDOF + k + ((j + nYValidCells) * nDOF + l) * nXTotalCells * nDOF
+            M[sparseIndex+1] = -1
+            alpha += 1
+            sparseIndex += 2
+
+        # i-valid indexes : j -> j + ny ONLY
+        for i in range(nGhost, nGhost+nXValidCells):
+          for k in range(nDOF):
+            IM[sparseIndex:sparseIndex+2] = alpha
+            JM[sparseIndex] = alpha
+            M[sparseIndex] = 1
+            JM[sparseIndex+1] = i * nDOF + k + ((j + nYValidCells) * nDOF + l) * nXTotalCells * nDOF
+            M[sparseIndex+1] = -1
+            alpha += 1
+            sparseIndex += 2
+
+        # right ghost cell column : periodic BC (i -> i - nx AND j -> j + ny)
+        for i in range(nGhost+nXValidCells, nXTotalCells):
+          for k in range(nDOF):
+            IM[sparseIndex:sparseIndex+2] = alpha
+            JM[sparseIndex] = alpha
+            M[sparseIndex] = 1
+            JM[sparseIndex+1] = (i - nXValidCells) * nDOF + k + ((j + nYValidCells) * nDOF + l) * nXTotalCells * nDOF
+            M[sparseIndex+1] = -1
+            alpha += 1
+            sparseIndex += 2
+
+
+    # 2 : j-valid indexes 
+    for j in range(nGhost, nGhost+nYValidCells):
+      for l in range(nDOF):
+        # left ghost cell column : periodic BC (i -> i + nx ONLY)
+        for i in range(nGhost):
+          for k in range(nDOF):
+            IM[sparseIndex:sparseIndex+2] = alpha
+            JM[sparseIndex] = alpha
+            M[sparseIndex] = 1
+            JM[sparseIndex+1] = (i + nXValidCells) * nDOF + k + (j * nDOF + l) * nXTotalCells * nDOF
+            M[sparseIndex+1] = -1
+            alpha += 1
+            sparseIndex += 2
+
+        # i-valid indexes : VALID MESH COMPUTATIONS
+        for i in range(nGhost, nGhost+nXValidCells):
+          for k in range(nDOF):
+            if k == 0 : # 5 cells involved
+              IM[sparseIndex:sparseIndex+5] = alpha
+              JM[sparseIndex:sparseIndex+5] = alpha + np.array([-2, -1, 0, 1, 2])
+              M[sparseIndex:sparseIndex+5] = np.array([-1, 2, 8, 2, -1], dtype=float) /30.
+              alpha += 1
+              sparseIndex += 5
+
+            elif k == 1 : # 3 cells involved
+              IM[sparseIndex:sparseIndex+3] = alpha
+              JM[sparseIndex:sparseIndex+3] = alpha + np.array([-1, 0, 1])
+              M[sparseIndex:sparseIndex+3] = np.array([2, 16, 2], dtype=float) /30.
+              alpha += 1
+              sparseIndex += 3
+
+        # right ghost cell column : periodic BC (i -> i - nx ONLY)
+        for i in range(nGhost+nXValidCells, nXTotalCells):
+          for k in range(nDOF):
+            IM[sparseIndex:sparseIndex+2] = alpha
+            JM[sparseIndex] = alpha
+            M[sparseIndex] = 1
+            JM[sparseIndex+1] = (i - nXValidCells) * nDOF + k + (j * nDOF + l) * nXTotalCells * nDOF
+            M[sparseIndex+1] = -1
+            alpha += 1
+            sparseIndex += 2
+
+
+    # 3 : upper ghost cells rows : periodic BC only
+    for j in range(nGhost+nYValidCells, nYTotalCells):
+      for l in range(nDOF):
+        # left ghost cell column : periodic BC (i -> i + nx AND j -> j - ny)
+        for i in range(nGhost):
+          for k in range(nDOF):
+            IM[sparseIndex:sparseIndex+2] = alpha
+            JM[sparseIndex] = alpha
+            M[sparseIndex] = 1
+            JM[sparseIndex+1] = (i + nXValidCells) * nDOF + k + ((j - nYValidCells) * nDOF + l) * nXTotalCells * nDOF
+            M[sparseIndex+1] = -1
+            alpha += 1
+            sparseIndex += 2
+
+        # i-valid indexes : j -> j - ny ONLY
+        for i in range(nGhost, nGhost+nXValidCells):
+          for k in range(nDOF):
+            IM[sparseIndex:sparseIndex+2] = alpha
+            JM[sparseIndex] = alpha
+            M[sparseIndex] = 1
+            JM[sparseIndex+1] = i * nDOF + k + ((j - nYValidCells) * nDOF + l) * nXTotalCells * nDOF
+            M[sparseIndex+1] = -1
+            alpha += 1
+            sparseIndex += 2
+
+        # right ghost cell column : periodic BC (i -> i - nx AND j -> j - ny)
+        for i in range(nGhost+nXValidCells, nXTotalCells):
+          for k in range(nDOF):
+            IM[sparseIndex:sparseIndex+2] = alpha
+            JM[sparseIndex] = alpha
+            M[sparseIndex] = 1
+            JM[sparseIndex+1] = (i - nXValidCells) * nDOF + k + ((j - nYValidCells) * nDOF + l) * nXTotalCells * nDOF
+            M[sparseIndex+1] = -1
+            alpha += 1
+            sparseIndex += 2
+
+    return IM, JM, M
+
+
+
+# q_ex and q_app are 1D arrays
+def make1DSlicesPlots(grid, q_ex, q_app, approx_type, basisChoice, spacePolynOrder, modificationChoice, i_slice, j_slice, k_slice, l_slice):
+    iMin, iMax, jMin, jMax = grid.validGridIndices
+    X, Y = grid.validGrid
+    nx = iMax - iMin + 1
+    ny = jMax - jMin + 1
+    nGhost = iMin
+    nDOF = spacePolynOrder
+
+    # extracting the horizontal slices
+    horizontal_slice_start = nGhost * nDOF + 0 + (j_slice * nDOF + l_slice) * (nx+2*nGhost) * nDOF    # (nG, 0, j_slice, l_slice)
+    horizontal_slice_end = horizontal_slice_start + nx * nDOF + 1                                     # (nG+nx, 0, j_slice, l_slice)
+    horizontal_slice_step = 1
+    q_ex_horizontal_slice = q_ex[horizontal_slice_start : horizontal_slice_end : horizontal_slice_step]
+    q_app_horizontal_slice = q_app[horizontal_slice_start : horizontal_slice_end : horizontal_slice_step]
+    X_horizontal_slice = np.zeros(nx*nGhost+1)
+    for i in range(nx*nDOF+1):
+        X_horizontal_slice[i] = X[i // nDOF, 0, i % nDOF, 0]
+
+    # extracting the vertical slices
+    vertical_slice_start = i_slice * nDOF + k_slice + (nGhost * nDOF + 0) * (nx+2*nGhost) * nDOF    # (nG, 0, j_slice, l_slice)
+    vertical_slice_end = vertical_slice_start + ny * nDOF * (nx+2*nGhost) * nDOF + 1                # (nG+nx, 0, j_slice, l_slice)
+    vertical_slice_step = (nx+2*nGhost) * nDOF
+    q_ex_vertical_slice = q_ex[vertical_slice_start : vertical_slice_end : vertical_slice_step]
+    q_app_vertical_slice = q_app[vertical_slice_start : vertical_slice_end : vertical_slice_step]
+    Y_vertical_slice = np.zeros(ny*nGhost+1)
+    for j in range(ny*nDOF+1):
+        Y_vertical_slice[j] = Y[0, j // nDOF, 0, j % nDOF]
+
+    x_slice = X[i_slice-nGhost, 0, k_slice, 0]
+    y_slice = Y[0, j_slice-nGhost, 0, l_slice]
+
+    with PdfPages(f"Plots/divF/{approx_type}_{nx}_1Dslices_{basisChoice}_P{spacePolynOrder}_{modificationChoice}") as pdf:
+        # Slice horizontal
+        plt.figure()
+        plt.title(f"Slice horizontal [0, 1]x{{{y_slice}}} : {approx_type}")
+        plt.plot(X_horizontal_slice, q_ex_horizontal_slice, label="exact")
+        plt.plot(X_horizontal_slice, q_app_horizontal_slice, label="approx")
+        plt.legend()
+        pdf.savefig()
+        plt.close()
+
+        # Slice vertical
+        plt.figure()
+        plt.title(f"Slice vertical {{{x_slice}}}x[0, 1] : {approx_type}")
+        plt.plot(Y_vertical_slice, q_ex_vertical_slice, label="exact")
+        plt.plot(Y_vertical_slice, q_app_vertical_slice, label="approx")
+        plt.legend()
+        pdf.savefig()
+        plt.close()
+
+
+# if True :
+if False :
+    xL, xR = 0., 1.
+    yL, yR = 0., 1.
+    nGhost = 10
+    spacePolynOrder = 2
+    grid_params = {"domain_parameters" : {"xL" : xL, "xR" : xR, "yL" : yL, "yR" : yR}, "mesh_parameters" : {"Nx" : 0, "Ny" : 0, "nGhost" : nGhost}}
+    params = {"grid_parameters" : grid_params, "order" : {"space_polyn_order" : spacePolynOrder}}
+
+    nList = [100, 200, 400, 800]
+    for n in nList :
+        grid_params["mesh_parameters"]["Nx"] = n
+        grid_params["mesh_parameters"]["Ny"] = n
+        gridOp = grid_mod.gridOperator(params)
+        iMin, iMax, jMin, jMax = gridOp.validGridIndices
+        dx, dy = gridOp.steps
+        h = gridOp.characteristic_size
+        basisChoice = "basic"
+        modificationChoice = "highest_accuracy"
+        IM1, JM1, M1 = getP2MassOtimesIdentityC00(n, n, spacePolynOrder, nGhost)
+        IM2, JM2, M2 = getBasicMassOtimesIdentityC00(n, n, spacePolynOrder, nGhost)
+
+        
+        tol = 1.e-14
+
+        print("")
+        print("nombre de cellules par côté : ", n)
+        for tabtype, tab1, tab2 in [("M", M1, M2), ("IM", IM1, IM2), ("JM", JM1, JM2)] :
+            ecart = abs(tab1 - tab2)
+            ecart_max = np.max(ecart)
+            print(f"test {tabtype} : ")
+            print(" - même taille ? ", len(tab1) == len(tab2))
+            print(" - écart max : ", ecart_max)
+            if ecart_max > tol :
+                print(" - nombre de valeurs différentes : ", np.sum(ecart > tol))
+                print(" - position de l'écart max : ", np.argmax(ecart))
+        print("")
+
+if True :
+# if False :
+    # Creation of the grid_parameters dictionnary by hand
+    xL, xR = 0., 1.
+    yL, yR = 0., 1.
+    nGhost = 2
+    spacePolynOrder = 1
+    grid_params = {"domain_parameters" : {"xL" : xL, "xR" : xR, "yL" : yL, "yR" : yR}, "mesh_parameters" : {"Nx" : 0, "Ny" : 0, "nGhost" : nGhost}}
+    params = {"grid_parameters" : grid_params, "order" : {"space_polyn_order" : spacePolynOrder}}
+    alpha = 0.5
+    functionChoice = 5
+    doSlicesPlots = False
+
+    nList = [100, 200, 400, 800]
+    hList = np.ones(len(nList))
+    Error_fx, Error_fxx = np.ones((2, len(nList)))
+
+    simuIndex = 0
+    for n in nList :
+
+        grid_params["mesh_parameters"]["Nx"] = n
+        grid_params["mesh_parameters"]["Ny"] = n
+        gridOp = grid_mod.gridOperator(params)
+        iMin, iMax, jMin, jMax = gridOp.validGridIndices
+        dx, dy = gridOp.steps
+        h = gridOp.characteristic_size
+        basisChoice = "basic"
+        modificationChoice = ""
+        IM, JM, M = getBasicMassOtimesIdentityC00(n, n, spacePolynOrder, nGhost)
+        nTotalDofs = (n + 2 * nGhost) * (n + 2 * nGhost) * spacePolynOrder**2
+        
+        M_coo = sp.sparse.coo_matrix((M, (IM, JM)), shape=(nTotalDofs, nTotalDofs))
+        M_csr = M_coo.tocsr()
+        evolCoeffs = get_arbitrar_order_SUPG_evolution_operator_coeffs(basisChoice, modificationChoice, spacePolynOrder, dx, dy, alpha, h)
+        # Modifications of the coeffs :
+        Id = np.array([np.zeros((spacePolynOrder, spacePolynOrder)), np.eye(spacePolynOrder), np.zeros((spacePolynOrder, spacePolynOrder))])
+        evolCoeffs[1] = Id 
+        evolCoeffs[13] = Id
+
+        # function and parameters choices
+        if functionChoice == 1 : # f(x, y) = cos(2 kx pi x) + sin(2 ky pi y) 
+            testFonction = test1
+            f_params = 2, 5 # kx, ky
+            functionDef = f"$f(x, y) = \\cos(2 \\times {f_params[0]} \\pi x) + \\sin(2 \\times {f_params[1]} \\pi y)$"
+
+        if functionChoice == 2 : # f(x, y) = a x^2 + b y^2 + c x + d y + e
+            testFonction = test2
+            f_params = np.pi, np.exp(1), 13., np.sqrt(2.), 3. # a, b, c, d, e
+            functionDef = f"$f(x, y) = {f_params[0]} x^2 + {f_params[1]} y^2 + {f_params[2]} x + {f_params[3]} y + {f_params[4]}$"
+
+        if functionChoice == 3 : # f(x, y) = cos(2 kx pi x) * cos(2 ky pi y)
+            testFonction = test3
+            f_params = 2, 5 # kx, ky
+            functionDef = f"$f(x, y) = \\cos(2 \\times {f_params[0]} \\pi x) \\cos(2 \\times {f_params[1]} \\pi y)$"
+
+        if functionChoice == 4 : # f(x, y) = a x^2 + b y^2 + c x*y + d x + e y + f
+            testFonction = test4
+            f_params = np.pi, -np.exp(1), -13., np.sqrt(2.), 3., -7./3. # a, b, c, d, e
+            functionDef = f"$f(x, y) = {f_params[0]} x^2 + {f_params[1]} y^2 + {f_params[2]} xy + {f_params[3]} x + {f_params[4]} y + {f_params[5]}$"
+
+        if functionChoice == 5 : # f(x, y) = sin(2 kx pi x) * sin(2 ky pi y)
+            testFonction = test5
+            f_params = 5, 5 # kx, ky
+            functionDef = f"$f(x, y) = \\sin(2 \\times {f_params[0]} \\pi x) \\sin(2 \\times {f_params[1]} \\pi y)$"
+
+        if functionChoice == 6 : # f(x, y) = x^a . (1-x)^b . y^c . (1-y)^d
+            testFonction = test6
+            f_params = 1., 1., 1., 1.
+            functionDef = f"$f(x, y) = x^{{f_params[0]}} (1-x)^{{f_params[1]}} y^{{f_params[2]}} (1-y)^{{f_params[3]}}$"
+
+
+        
+
+        f, f_x, _, f_xx = \
+            getTestFonctionLagrangeArbitrarOrderInterpolation(xL, xR, yL, yR, n, n, nGhost, spacePolynOrder, testFonction, f_params)[:4]
+
+
+        q = np.zeros((n + 2 * nGhost, n + 2 * nGhost, spacePolynOrder, spacePolynOrder, 3))
+        q[:, :, :, :, 0] = f
+
+        divFlux = get_evaluation_of_arbitrar_order_SUPG_weighted_evolution_operator(q, iMin, iMax, jMin, jMax, spacePolynOrder, evolCoeffs)
+        divFlux[:nGhost] = 0.
+        divFlux[:, :nGhost] = 0.
+        divFlux[nGhost+n:] = 0.
+        divFlux[:, nGhost+n:] = 0.
+
+        # Extraction et applatissement de f_x_tilde et f_xx_tilde, aplatissement de f_x et f_xx
+        f_x_tilde, f_xx_tilde, f_x_flattened, f_xx_flattened, massed_f_x_tilde, massed_f_xx_tilde = np.zeros((6, (n+2*nGhost)**2 * spacePolynOrder**2))
+        for j in range(n+2*nGhost):
+          for l in range(spacePolynOrder):
+            for i in range(n+2*nGhost):
+              for k in range(spacePolynOrder):
+                index1D = i * spacePolynOrder + k + (j * spacePolynOrder + l) * (n + 2 * nGhost) * spacePolynOrder
+                f_x_tilde[index1D] = divFlux[i, j, k, l, 2]
+                f_xx_tilde[index1D] = - divFlux[i, j, k, l, 0] / (alpha * h)
+                f_x_flattened[index1D] = f_x[i, j, k, l]
+                f_xx_flattened[index1D] = f_xx[i, j, k, l]
+
+        massed_f_x_tilde = sp.sparse.linalg.spsolve(M_csr, f_x_tilde)
+        massed_f_xx_tilde = sp.sparse.linalg.spsolve(M_csr, f_xx_tilde)
+
+        if doSlicesPlots :
+            # 1D slices plots
+            i_slice = int(n/4)+nGhost
+            j_slice = int(3*n/4)+nGhost
+            k_slice = 0
+            l_slice = 0
+            make1DSlicesPlots(gridOp, f_x_flattened, massed_f_x_tilde, "der", basisChoice, spacePolynOrder, modificationChoice, i_slice, j_slice, k_slice, l_slice)
+            make1DSlicesPlots(gridOp, f_xx_flattened, massed_f_xx_tilde, "second_der", basisChoice, spacePolynOrder, modificationChoice, i_slice, j_slice, k_slice, l_slice)
+
+        hList[simuIndex] = dx
+        Error_fx[simuIndex] = np.max(abs(massed_f_x_tilde - f_x_flattened))
+        Error_fxx[simuIndex] = np.max(abs(massed_f_xx_tilde - f_xx_flattened))
+
+
+        if simuIndex > 0 :
+            print("")
+            print("nombre de points par côté : ", n)
+            print("Erreurs opérations sur la dérivée : ", Error_fx[simuIndex], " || pente : ", (np.log(Error_fx[simuIndex]) - np.log(Error_fx[simuIndex-1])) / (np.log(hList[simuIndex]) - np.log(hList[simuIndex-1])))
+            print("Erreurs opérations sur la dérivée seconde : ", Error_fxx[simuIndex], " || pente : ", (np.log(Error_fxx[simuIndex]) - np.log(Error_fxx[simuIndex-1])) / (np.log(hList[simuIndex]) - np.log(hList[simuIndex-1])))
+            print("")
+        else :
+            print("")
+            print("nombre de points par côté : ", n)
+            print("Erreurs opérations sur la dérivée : ", Error_fx[simuIndex])
+            print("Erreurs opérations sur la dérivée seconde : ", Error_fxx[simuIndex])
+            print("")
+        
+        simuIndex += 1
+
+    # regression linéaire sur les droites de convergence :
+    # erreurs sur f_x
+    X_fx = np.ones((len(nList), 2))
+    X_fx[:, 1] = np.log(hList)
+    X_fx_T = np.transpose(X_fx)
+    A_fx = np.linalg.solve(X_fx_T @ X_fx, X_fx_T @ np.log(Error_fx))
+
+    # erreurs sur f_xx
+    X_fxx = np.ones((len(nList), 2))
+    X_fxx[:, 1] = np.log(hList)
+    X_fxx_T = np.transpose(X_fxx)
+    A_fxx = np.linalg.solve(X_fxx_T @ X_fxx, X_fxx_T @ np.log(Error_fxx))
+
+    print("Regressions linéaires sur les données : ")
+    print(" - pente pour la dérivée : ", A_fx[1])
+    print(" - pente pour la dérivée seconde : ", A_fxx[1])
+    
+    with PdfPages(f"Plots/divF/Test_{functionChoice}_Conv_{basisChoice}_P{spacePolynOrder}_{modificationChoice}") as pdf:
+        # Résultats des opérations sur la première composante   
+        plt.figure()
+        plt.title(f"Erreurs en norme $L^{{\\infty}}$ sur $\\partial_x$ pour avec {basisChoice} P{spacePolynOrder} {modificationChoice} \n \
+                  et {functionDef}")
+        plt.plot(hList, Error_fx, label="$\\left\\| \\partial_x f - \\widetilde{\\partial_x} f \\right\\|_{{\\infty}}$",marker="o")
+        plt.plot(hList, np.exp(A_fx[0]) * hList**A_fx[1], label=f"regression de pente {round(A_fx[1], 3)}", linestyle="--", alpha=0.5)
+        plt.xlabel("h")
+        plt.ylabel("error")
+        plt.xscale("log")
+        plt.yscale("log")
+        plt.legend()
+        pdf.savefig()
+
+        # Résultats des opérations sur la seonde composante
+        plt.figure()
+        plt.title(f"Erreurs en norme $L^{{\\infty}}$ sur $\\partial_x^2$ pour avec {basisChoice} P{spacePolynOrder} {modificationChoice}  \n \
+                  et {functionDef}")
+        plt.plot(hList, Error_fxx, label="$\\left\\| \\partial_x^2 f - \\widetilde{\\partial_x^2} f \\right\\|_{{\\infty}}$", marker="o")
+        plt.plot(hList, np.exp(A_fxx[0]) * hList**A_fxx[1], label=f"regression de pente {round(A_fxx[1])}", linestyle="--", alpha=0.5)
+        plt.xlabel("h")
+        plt.ylabel("error")
+        plt.xscale("log")
+        plt.yscale("log")
+        plt.legend()
+        pdf.savefig()
 

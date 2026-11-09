@@ -62,11 +62,10 @@ def getOneApproximateSolution(params, q_prep=[]):
     # INITIALISATION
     ### grid creation 
     gridOp = grid_mod.gridOperator(params)
-    iMin, iMax, jMin, jMax = gridOp.valid_grid
+    iMin, iMax, jMin, jMax = gridOp.validGridIndices
     dx, dy = gridOp.steps
     h = gridOp.characteristic_size
-    X = gridOp.xValidGrid
-    Y = gridOp.yValidGrid
+    X, Y = gridOp.validGrid
 
     ### initialise time parameters
     currentIteration = 0
@@ -92,14 +91,15 @@ def getOneApproximateSolution(params, q_prep=[]):
 
     spacePolynOrder, nbSubTimeSteps, nbCorrections = params["order"].values()
     basisChoice = params["basis_choice"]
+    modificationChoice = params["modifcation_choice"]
 
     ### Initialise data
     if spacePolynOrder == 0 :
         q = np.zeros((Nx + 2*nGhost, Ny + 2*nGhost, 3))
     else : 
         q = np.zeros((Nx + 2*nGhost, Ny + 2*nGhost, spacePolynOrder, spacePolynOrder, 3))
-        evolCoeffs = spatial_operators.get_arbitrar_order_SUPG_weighted_evolution_operator_coeffs(basisChoice, spacePolynOrder, dx, dy, alpha, h)
-        massCoeffs = spatial_operators.get_arbitrar_order_SUPG_weighted_mass_operator_coeffs(basisChoice, spacePolynOrder, dx, dy, alpha, h)
+        evolCoeffs = spatial_operators.get_arbitrar_order_SUPG_weighted_evolution_operator_coeffs(basisChoice, modificationChoice, spacePolynOrder, dx, dy, alpha, h)
+        massCoeffs = spatial_operators.get_arbitrar_order_SUPG_weighted_mass_operator_coeffs(basisChoice, modificationChoice, spacePolynOrder, dx, dy, alpha, h)
 
     if simulationChoice == 4 :
         q_prep = solutions.getSolution(currentTime, X, Y, simulationChoice, params["solution_parameters"])
@@ -344,9 +344,8 @@ def getConvergenceTest(nList, params):
         q = getOneApproximateSolution(params)
 
         gridOp = grid_mod.gridOperator(params)
-        X = gridOp.xValidGrid
-        Y = gridOp.yValidGrid
-        iMin, iMax, jMin, jMax = gridOp.valid_grid
+        X, Y = gridOp.validGrid
+        iMin, iMax, jMin, jMax = gridOp.validGridIndices
         q_exact = solutions.getSolution(finalTime, X, Y, simulationChoice, params["solution_parameters"])
         
         supErrorsList[i] = np.max(abs(q[iMin:iMax+2, jMin:jMax+2] - q_exact), axis=axes)
@@ -434,8 +433,7 @@ def getConvergenceTest(nList, params):
         params["grid_parameters"]["mesh_parameters"]["Ny"] = n
 
         gridOp = grid_mod.gridOperator(params)
-        X = gridOp.xValidGrid
-        Y = gridOp.yValidGrid
+        X, Y = gridOp.validGrid
 
         # Plotting successive figures
         if (True) :
@@ -525,7 +523,7 @@ def getAdaptedTimeUpdate(dt_apriori, currentTime, finalTime, do_obs_table, nbPlo
 
 def getInitialObservables(q, q_prep, finalTime, dt_apriori, grid, params, simulationChoice, do_obs_table, nbPlots, axes):
     
-    iMin, iMax, jMin, jMax = grid.valid_grid
+    iMin, iMax, jMin, jMax = grid.validGridIndices
     dx, dy = grid.steps
     h = grid.characteristic_size
 
@@ -669,7 +667,7 @@ def getLastObservables(q, q_prep, currentTime, grid, params, spacePolynOrder, op
                        Xvis, Yvis, pdf_writers, gif_writers, nbPlots, do_pdf_plot, do_gif_plot, \
                        iterations_of_obs_table, normsTable, errorsTable, massesTable, physicalTermsNormsTable):
     
-    iMin, iMax, jMin, jMax = grid.valid_grid
+    iMin, iMax, jMin, jMax = grid.validGridIndices
     h = grid.characteristic_size
    
     if (do_obs_table[1] or do_obs_table[2] or do_obs_table[3]):
